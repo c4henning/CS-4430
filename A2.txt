@@ -1,0 +1,837 @@
+1. Find the model number, speed, and hard-disk size for all PC ’s whose price is under $1000.
+
+mysql> SELECT  model, speed, hdisk
+    -> FROM pc
+    -> WHERE price < 1000;
++-------+-------+-------+
+| model | speed | hdisk |
++-------+-------+-------+
+| 1002  |  2.10 |   250 |
+| 1003  |  1.42 |    80 |
+| 1004  |  2.80 |   250 |
+| 1005  |  3.20 |   250 |
+| 1007  |  2.20 |   200 |
+| 1008  |  2.20 |   250 |
+| 1009  |  2.00 |   250 |
+| 1010  |  2.80 |   300 |
+| 1011  |  1.86 |   160 |
+| 1012  |  2.80 |   160 |
+| 1013  |  3.06 |    80 |
++-------+-------+-------+
+11 rows in set (0.00 sec)
+
+
+2. List the manufacturers of all printers.
+
+mysql> SELECT DISTINCT maker
+    -> FROM product
+    -> WHERE type = 'Printer';
++-------+
+| maker |
++-------+
+| D     |
+| E     |
+| H     |
++-------+
+3 rows in set (0.00 sec)
+
+
+3. Find the model number, memory size, and screen size for laptops costing more than $1500.
+
+mysql> SELECT model, ram, screen
+    -> FROM laptop
+    -> WHERE price > 1500;
++-------+------+--------+
+| model | ram  | screen |
++-------+------+--------+
+| 2001  | 2048 |  20.10 |
+| 2005  | 1024 |  17.00 |
+| 2006  | 2048 |  15.40 |
+| 2010  | 2048 |  15.40 |
++-------+------+--------+
+4 rows in set (0.00 sec)
+
+
+4. List all color printers.
+
+mysql> SELECT *
+    -> FROM printer
+    -> WHERE color = 1;
++-------+-------+---------+--------+
+| model | color | type    | price  |
++-------+-------+---------+--------+
+| 3001  |     1 | ink-jet |  99.00 |
+| 3003  |     1 | laser   | 899.00 |
+| 3004  |     1 | ink-jet | 120.00 |
+| 3006  |     1 | ink-jet | 100.00 |
+| 3007  |     1 | laser   | 200.00 |
++-------+-------+---------+--------+
+5 rows in set (0.00 sec)
+
+
+5. Find the model number and hard-disk size for those PC ’s that have a speed of 3.2 and a price less than $2000.
+
+mysql> SELECT model, hdisk
+    -> FROM pc
+    -> WHERE speed = 3.2 
+    -> AND price < 2000;
++-------+-------+
+| model | hdisk |
++-------+-------+
+| 1005  |   250 |
+| 1006  |   320 |
++-------+-------+
+2 rows in set (0.00 sec)
+
+
+6. Give the manufacturer and speed of laptops with a hard disk of at least 30.
+
+mysql> SELECT maker, speed
+    -> FROM product p, laptop l
+    -> WHERE p.model = l.model
+    -> AND hdisk >= 30;
++-------+-------+
+| maker | speed |
++-------+-------+
+| A     |  2.00 |
+| A     |  2.16 |
+| A     |  2.00 |
+| B     |  1.83 |
+| E     |  2.00 |
+| E     |  1.73 |
+| E     |  1.80 |
+| F     |  1.60 |
+| F     |  1.60 |
+| G     |  2.00 |
++-------+-------+
+10 rows in set (0.02 sec)
+
+7. Find the model number and price of all products (of any type) made by manufacturer B.
+
+mysql> SELECT p.model, COALESCE(pc.price, l.price, prt.price) AS price
+    -> FROM product p
+    -> LEFT JOIN pc ON p.model = pc.model
+    -> LEFT JOIN laptop l ON p.model = l.model
+    -> LEFT JOIN printer prt ON p.model = prt.model
+    -> WHERE p.maker = 'B';
++-------+---------+
+| model | price   |
++-------+---------+
+| 1004  |  649.00 |
+| 1005  |  630.00 |
+| 1006  | 1049.00 |
+| 2007  | 1429.00 |
++-------+---------+
+4 rows in set (0.02 sec)
+
+
+8. Find those manufacturers that sell Laptops, but not PC ’s.
+
+mysql> SELECT DISTINCT maker
+    -> FROM product
+    -> WHERE type = 'Laptop'
+    -> AND maker NOT IN (SELECT maker FROM product WHERE type = 'PC');
++-------+
+| maker |
++-------+
+| F     |
+| G     |
++-------+
+2 rows in set (0.02 sec)
+
+
+9. Find those hard-disk sizes that occur in two or more PC ’s.
+
+mysql> SELECT hdisk
+    -> FROM pc
+    -> GROUP BY hdisk
+    -> HAVING COUNT(*) >= 2;
++-------+
+| hdisk |
++-------+
+|   250 |
+|    80 |
+|   160 |
++-------+
+3 rows in set (0.01 sec)
+
+
+10. Find those pairs of PC models that have both the same speed and RAM. A pair should be listed only once; e.g., list (i , j ) but not (j,i).
+
+mysql> SELECT a.model, b.model
+    -> FROM pc a, pc b
+    -> WHERE a.speed = b.speed
+    -> AND a.ram = b.ram
+    -> AND a.model < b.model;
++-------+-------+
+| model | model |
++-------+-------+
+| 1004  | 1012  |
++-------+-------+
+1 row in set (0.01 sec)
+
+
+11. Find those manufacturers of at least two different computers (PC’s or laptops) with speeds of at least 3.0.
+
+mysql> SELECT maker 
+    -> FROM product p 
+    -> LEFT JOIN pc ON p.model = pc.model 
+    -> LEFT JOIN laptop l ON p.model = l.model 
+    -> WHERE pc.speed >= 3 
+    -> OR l.speed >= 3 
+    -> GROUP BY maker 
+    -> HAVING COUNT(*) >= 2;
++-------+
+| maker |
++-------+
+| B     |
++-------+
+1 row in set (0.02 sec)
+
+
+12. Find the makers of PC ’s with a speed of at least 3.0.
+
+mysql> SELECT DISTINCT maker
+    -> FROM product
+    -> WHERE model IN (SELECT model FROM pc WHERE speed >= 3);
++-------+
+| maker |
++-------+
+| B     |
+| E     |
++-------+
+2 rows in set (0.01 sec)
+
+
+13. Find the printers with the highest price.
+
+mysql> SELECT *
+    -> FROM printer
+    -> WHERE price = (SELECT MAX(price) FROM printer);
++-------+-------+-------+--------+
+| model | color | type  | price  |
++-------+-------+-------+--------+
+| 3003  |     1 | laser | 899.00 |
++-------+-------+-------+--------+
+1 row in set (0.01 sec)
+
+
+14. Find the laptops whose speed is slower than that of any PC.
+
+mysql> SELECT * 
+    -> FROM laptop 
+    -> WHERE speed < (SELECT MIN(speed) FROM pc);
+Empty set (0.00 sec)
+
+
+15. Find the model number of the item (PC, laptop, or printer) with the highest price.
+
+mysql> WITH t AS(
+    -> SELECT p.model, COALESCE(pc.price, l.price, prt.price) AS price
+    -> FROM product p
+    -> LEFT JOIN pc ON p.model = pc.model
+    -> LEFT JOIN laptop l ON p.model = l.model
+    -> LEFT JOIN printer prt ON p.model = prt.model)
+    -> SELECT model
+    -> FROM t
+    -> WHERE price = (SELECT MAX(price) FROM t);
++-------+
+| model |
++-------+
+| 2001  |
++-------+
+1 row in set (0.01 sec)
+
+
+16. Find the maker of the least expensive color printer.
+
+mysql> SELECT maker 
+    -> FROM printer prt 
+    -> LEFT JOIN product p ON prt.model = p.model 
+    -> WHERE price = (SELECT MIN(price) FROM printer WHERE color = 1);
++-------+
+| maker |
++-------+
+| E     |
++-------+
+1 row in set (0.00 sec)
+
+
+17. Find the maker(s) of the PC(s) with the fastest processor among all those PC’s that have the smallest amount of RAM.
+
+mysql> SELECT maker
+    -> FROM product p, pc
+    -> WHERE p.model = pc.model
+    -> AND speed = (
+    -> SELECT MAX(speed)
+    -> FROM pc
+    -> WHERE ram = (SELECT MIN(ram) FROM pc))
+    -> AND p.model in (SELECT pc.model
+    -> FROM pc
+    -> WHERE ram = (SELECT MIN(ram) FROM pc));
++-------+
+| maker |
++-------+
+| B     |
++-------+
+1 row in set (0.02 sec)
+
+
+18. Find the average speed of PC ’s.
+
+mysql> SELECT AVG(speed)
+    -> FROM pc;
++------------+
+| AVG(speed) |
++------------+
+|   2.484615 |
++------------+
+1 row in set (0.02 sec)
+
+
+19. Find the average speed of laptops costing over $1000.
+
+mysql> SELECT AVG(speed)
+    -> FROM laptop 
+    -> WHERE price > 1000;
++------------+
+| AVG(speed) |
++------------+
+|   1.998333 |
++------------+
+1 row in set (0.01 sec)
+
+
+
+20. Find the average price of PC’s made by manufacturer “A.”
+
+mysql> SELECT AVG(price)
+    -> FROM pc
+    -> WHERE model IN (SELECT model FROM product WHERE maker = 'a');
++-------------+
+| AVG(price)  |
++-------------+
+| 1195.666667 |
++-------------+
+1 row in set (0.02 sec)
+
+
+21. Find the average price of PC’s and laptops made by manufacturer “D.”
+
+mysql> SELECT AVG(COALESCE(pc.price, l.price)) AS price 
+    -> FROM product p 
+    -> LEFT JOIN pc ON p.model = pc.model 
+    -> LEFT JOIN laptop l ON p.model = l.model 
+    -> WHERE p.model IN (SELECT model FROM product WHERE maker = 'D');
++------------+
+| price      |
++------------+
+| 730.000000 |
++------------+
+1 row in set (0.00 sec)
+
+
+22. Find, for each different speed, the average price of a PC.
+
+mysql> SELECT speed, AVG(PRICE)
+    -> FROM pc
+    -> GROUP BY speed;
++-------+-------------+
+| speed | AVG(PRICE)  |
++-------+-------------+
+|  2.66 | 2114.000000 |
+|  2.10 |  995.000000 |
+|  1.42 |  478.000000 |
+|  2.80 |  689.333333 |
+|  3.20 |  839.500000 |
+|  2.20 |  640.000000 |
+|  2.00 |  650.000000 |
+|  1.86 |  959.000000 |
+|  3.06 |  529.000000 |
++-------+-------------+
+9 rows in set (0.01 sec)
+
+
+23. Find for each manufacturer, the average screen size of its laptops.
+
+mysql> SELECT maker, AVG(screen)
+    -> FROM product p, laptop l
+    -> WHERE p.model = l.model
+    -> GROUP BY maker;
++-------+-------------+
+| maker | AVG(screen) |
++-------+-------------+
+| A     |   15.233333 |
+| B     |   13.300000 |
+| E     |   17.500000 |
+| F     |   14.750000 |
+| G     |   15.400000 |
++-------+-------------+
+5 rows in set (0.00 sec)
+
+
+24. Find the manufacturers that make at least three different models of PC.
+
+mysql> SELECT maker
+    -> FROM product p, pc
+    -> WHERE p.model = pc.model
+    -> GROUP BY maker
+    -> HAVING COUNT(*) >= 3;
++-------+
+| maker |
++-------+
+| A     |
+| B     |
+| D     |
+| E     |
++-------+
+4 rows in set (0.01 sec)
+
+
+25. Find for each manufacturer who sells PC’s the maximum price of a PC.
+
+mysql> SELECT maker, MAX(price) 
+    -> FROM product p, pc 
+    -> WHERE p.model = pc.model 
+    -> GROUP BY maker;
++-------+------------+
+| maker | MAX(price) |
++-------+------------+
+| A     |    2114.00 |
+| B     |    1049.00 |
+| C     |     510.00 |
+| D     |     770.00 |
+| E     |     959.00 |
++-------+------------+
+5 rows in set (0.00 sec)
+
+
+26. Find, for each speed of PC above 2.0, the average price.
+
+mysql> SELECT speed, AVG(price)
+    -> FROM pc
+    -> WHERE speed > 2
+    -> GROUP BY speed;
++-------+-------------+
+| speed | AVG(price)  |
++-------+-------------+
+|  2.66 | 2114.000000 |
+|  2.10 |  995.000000 |
+|  2.80 |  689.333333 |
+|  3.20 |  839.500000 |
+|  2.20 |  640.000000 |
+|  3.06 |  529.000000 |
++-------+-------------+
+6 rows in set (0.00 sec)
+
+
+27. For each manufacture that makes printers, find the average hard disk size of PCs it makes.
+
+mysql> SELECT maker, AVG(hdisk)
+    -> FROM product p, pc
+    -> WHERE p.model = pc.model
+    -> AND maker IN (SELECT DISTINCT maker FROM product WHERE type = 'Printer')
+    -> GROUP BY maker;
++-------+------------+
+| maker | AVG(hdisk) |
++-------+------------+
+| D     |   266.6667 |
+| E     |   133.3333 |
++-------+------------+
+2 rows in set (0.00 sec)
+
+
+28. Find the class name and country for all classes with at least 10 guns.
+
+mysql> SELECT class, country
+    -> FROM classes
+    -> WHERE guns >= 10;
++-----------+---------+
+| class     | country |
++-----------+---------+
+| Tennessee | USA     |
++-----------+---------+
+1 row in set (0.00 sec)
+
+
+29. Find the names of all ships launched prior to 1918, but call the resulting column shipName.
+
+mysql> SELECT name AS shipName
+    -> FROM ships
+    -> WHERE launched < 1918;
++-----------------+
+| shipName        |
++-----------------+
+| Haruna          |
+| Hiei            |
+| Kirishima       |
+| Kongo           |
+| Ramillies       |
+| Renown          |
+| Repulse         |
+| Resolution      |
+| Revenge         |
+| Royal Oak       |
+| Royal Sovereign |
++-----------------+
+11 rows in set (0.00 sec)
+
+
+30. Find the names of ships sunk in battle and the name of the battle in which they were sunk.
+
+mysql> SELECT ship, battle
+    -> FROM outcomes
+    -> WHERE result = 'sunk';
++-------------+----------------+
+| ship        | battle         |
++-------------+----------------+
+| Arizona     | Pearl Harbor   |
+| Bismarck    | Denmark Strait |
+| Fuso        | Surigao Strait |
+| Hood        | Denmark Strait |
+| Kirishima   | Guadalcanal    |
+| Scharnhorst | North Cape     |
+| Yamashiro   | Surigao Strait |
++-------------+----------------+
+7 rows in set (0.00 sec)
+
+
+31. Find all ships that have the same name as their class.
+
+mysql> SELECT name 
+    -> FROM ships
+    -> WHERE name = class;
++----------------+
+| name           |
++----------------+
+| Iowa           |
+| Kongo          |
+| North Carolina |
+| Renown         |
+| Revenge        |
+| Tennessee      |
+| Yamato         |
++----------------+
+7 rows in set (0.01 sec)
+
+
+32. Find the names of all ships that begin with the letter “R.”
+
+mysql> SELECT name
+    -> FROM ships
+    -> WHERE name LIKE 'R%';
++-----------------+
+| name            |
++-----------------+
+| Ramillies       |
+| Renown          |
+| Repulse         |
+| Resolution      |
+| Revenge         |
+| Royal Oak       |
+| Royal Sovereign |
++-----------------+
+7 rows in set (0.01 sec)
+
+
+33. Find the names of all ships from the Outcomes table whose name consists of three or more words (e.g., King George V).
+
+mysql> SELECT ship
+    -> FROM outcomes
+    -> WHERE ship LIKE '% % %';
++-----------------+
+| ship            |
++-----------------+
+| Duke of York    |
+| King George V   |
+| Prince of Wales |
++-----------------+
+3 rows in set (0.00 sec)
+
+
+34. Find the ships heavier than 35,000 tons.
+
+mysql> SELECT name
+    -> FROM ships s, classes c
+    -> WHERE s.class = c.class
+    -> AND displacement > 35000;
++----------------+
+| name           |
++----------------+
+| Iowa           |
+| Missouri       |
+| New Jersey     |
+| Wisconsin      |
+| North Carolina |
+| Washington     |
+| Musashi        |
+| Yamato         |
++----------------+
+8 rows in set (0.01 sec)
+
+
+35. List the name, displacement, and number of guns of the ships engaged in the battle of Guadalcanal.
+
+mysql> SELECT s.name, displacement, guns
+    -> FROM ships s
+    -> LEFT JOIN classes c ON s.class = c.class
+    -> WHERE s.name IN (SELECT ship FROM outcomes WHERE battle = 'Guadalcanal');
++------------+--------------+------+
+| name       | displacement | guns |
++------------+--------------+------+
+| Kirishima  |        32000 |    8 |
+| Washington |        37000 |    9 |
++------------+--------------+------+
+2 rows in set (0.01 sec)
+
+
+36. Find those countries that have both battleships and battlecruisers.
+
+mysql> SELECT DISTINCT country
+    -> FROM classes 
+    -> WHERE type = 'bb'
+    -> AND country IN (SELECT DISTINCT country FROM classes WHERE type = 'bc');
++-------------+
+| country     |
++-------------+
+| Gt. Britain |
+| Japan       |
++-------------+
+2 rows in set (0.02 sec)
+
+
+37. Find those ships that were damaged in one battle, but later fought in.
+
+mysql> SELECT o2.ship
+    -> FROM outcomes o1
+    -> INNER JOIN outcomes o2 ON o1.ship = o2.ship
+    -> LEFT JOIN battles b1 ON b1.name = o1.battle
+    -> LEFT JOIN battles b2 ON b2.name = o2.battle
+    -> WHERE o1.result = 'damaged'
+    -> AND b1.bdate < b2.bdate;
+Empty set (0.01 sec)
+
+
+38. Find those battles with at least three ships of the same country.
+
+mysql> SELECT c.country 
+    -> FROM outcomes o 
+    -> LEFT JOIN ships s ON o.ship = s.name 
+    -> LEFT JOIN classes c on s.class = c.class 
+    -> GROUP BY c.country 
+    -> HAVING COUNT(*) >= 3 
+    -> AND country IS NOT NULL;
++---------+
+| country |
++---------+
+| USA     |
++---------+
+1 row in set (0.00 sec)
+
+
+39. Find the countries whose ships had the largest number of guns.
+
+mysql> WITH t AS (
+    -> SELECT c.country, SUM(c.guns) AS n_guns 
+    -> FROM ships s 
+    -> LEFT JOIN classes c on s.class = c.class GROUP BY country) 
+    -> SELECT country 
+    -> FROM t 
+    -> WHERE n_guns = (SELECT MAX(n_guns) FROM t);
++---------+
+| country |
++---------+
+| USA     |
++---------+
+1 row in set (0.02 sec)
+
+
+40. Find the classes of ships, at least one of which was sunk in a battle.
+
+mysql> SELECT DISTINCT class
+    -> FROM ships, outcomes
+    -> WHERE ships.name = outcomes.ship
+    -> AND outcomes.result = 'sunk';
++-------+
+| class |
++-------+
+| Kongo |
++-------+
+1 row in set (0.00 sec)
+
+
+41. Find the names of the ships with a 16-inch bore.
+
+mysql> SELECT s.name
+    -> FROM ships s, classes c
+    -> WHERE s.class = c.class
+    -> AND c.bore = 16;
++----------------+
+| name           |
++----------------+
+| Iowa           |
+| Missouri       |
+| New Jersey     |
+| Wisconsin      |
+| North Carolina |
+| Washington     |
++----------------+
+6 rows in set (0.00 sec)
+
+
+42. Find the battles in which ships of the Kongo class participated.
+
+mysql> SELECT o.battle
+    -> FROM outcomes o
+    -> LEFT JOIN ships s ON o.ship = s.name
+    -> WHERE s.class = 'Kongo';
++-------------+
+| battle      |
++-------------+
+| Guadalcanal |
++-------------+
+1 row in set (0.00 sec)
+
+
+43. Find the names of the ships whose number of guns was the largest for those ships of the same bore.
+
+mysql> SELECT name
+    -> FROM ships
+    -> WHERE class IN (
+    -> SELECT c.class
+    -> FROM classes c, (
+    -> SELECT bore, MAX(guns) as max_guns
+    -> FROM classes
+    -> GROUP BY bore) t
+    -> WHERE c.bore = t.bore
+    -> AND c.guns = t.max_guns);
++-----------------+
+| name            |
++-----------------+
+| Iowa            |
+| Missouri        |
+| New Jersey      |
+| Wisconsin       |
+| North Carolina  |
+| Washington      |
+| Ramillies       |
+| Resolution      |
+| Revenge         |
+| Royal Oak       |
+| Royal Sovereign |
+| California      |
+| Tennessee       |
+| Musashi         |
+| Yamato          |
++-----------------+
+15 rows in set (0.01 sec)
+
+44. Find the number of battleship (type=’bb’) classes.
+
+mysql> SELECT COUNT(*) AS n_battleships
+    -> FROM ships s LEFT JOIN classes c ON s.class = c.class 
+    -> WHERE type = 'bb';
++---------------+
+| n_battleships |
++---------------+
+|            15 |
++---------------+
+1 row in set (0.00 sec)
+
+
+45. Find the average number of guns of battleship (type=’bb’) classes.
+
+mysql> SELECT AVG(guns)
+    -> FROM classes
+    -> WHERE type = 'bb';
++-----------+
+| AVG(guns) |
++-----------+
+|    9.1667 |
++-----------+
+1 row in set (0.00 sec)
+
+
+46. Find the average number of guns of battleships (type=’bb’). Note the difference to the previous question. In this question, you need to weight a class by the number of ships of that class.
+
+mysql> SELECT AVG(c.guns)
+    -> FROM ships s
+    -> LEFT JOIN classes c ON s.class = c.class
+    -> WHERE c.type = 'bb';
++-------------+
+| AVG(c.guns) |
++-------------+
+|      9.0667 |
++-------------+
+1 row in set (0.00 sec)
+
+
+47. Find for each class the year in which the first ship of that class was launched.
+
+mysql> SELECT class, MIN(launched) AS first_launched 
+    -> FROM ships 
+    -> GROUP BY class;
++----------------+----------------+
+| class          | first_launched |
++----------------+----------------+
+| Iowa           |           1943 |
+| Kongo          |           1913 |
+| North Carolina |           1941 |
+| Renown         |           1916 |
+| Revenge        |           1916 |
+| Tennessee      |           1920 |
+| Yamato         |           1941 |
++----------------+----------------+
+7 rows in set (0.00 sec)
+
+
+48. Find for each class the number of ships of that class sunk in battle.
+
+mysql> SELECT class, COUNT(*)
+    -> FROM outcomes o
+    -> LEFT JOIN ships s ON o.ship = s.name
+    -> WHERE o.result = 'sunk'
+    -> GROUP BY class;
++-------+----------+
+| class | COUNT(*) |
++-------+----------+
+| NULL  |        6 |
+| Kongo |        1 |
++-------+----------+
+2 rows in set (0.02 sec)
+
+
+49. Find for each class with at least three ships the number of ships of that class sunk in battle.
+
+mysql> SELECT class, COUNT(*) 
+    -> FROM outcomes o  
+    -> LEFT JOIN ships s ON o.ship = s.name  
+    -> WHERE class in (
+    -> SELECT class
+    -> FROM ships s
+    -> GROUP BY class
+    -> HAVING COUNT(*) >= 3)
+    -> AND o.result = 'sunk' 
+    -> GROUP BY class;
++-------+----------+
+| class | COUNT(*) |
++-------+----------+
+| Kongo |        1 |
++-------+----------+
+1 row in set (0.02 sec)
+
+
+50. The weight (in pounds) of the shell fired from a naval gun is approximately one half the cube of the bore (in inches). Find the average weight of the shell for each country’s ships.
+
+mysql> SELECT country, ROUND(AVG(0.5 * POW(bore, 3)),0) AS average_shell_weight 
+    -> FROM ships s 
+    -> LEFT JOIN classes c ON s.class = c.class 
+    -> GROUP BY country;
++-------------+----------------------+
+| country     | average_shell_weight |
++-------------+----------------------+
+| USA         |                 1879 |
+| Japan       |                 1887 |
+| Gt. Britain |                 1688 |
++-------------+----------------------+
+3 rows in set (0.00 sec)

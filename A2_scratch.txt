@@ -1,0 +1,32 @@
+Database 2: battleship
+
+classes (class, type, country, guns, bore, displacement)
+ships (name, class, launched)
+battles (name, bdate)
+outcomes (ship, battle, result)
+
+
+
+SELECT country, AVG(0.5 * POW(bore, 3)) AS average_shell_weight
+FROM ships s
+LEFT JOIN classes c ON s.class = c.class
+GROUP BY country;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
