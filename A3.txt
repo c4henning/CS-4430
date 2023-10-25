@@ -1,0 +1,568 @@
+1. Using two INSERT statements, store in the database the fact that PC model 1100 is made by manufacturer C, has speed 3.2, RAM 1024, hard disk 180, and sells for $2499.
+
+INSERT INTO product 
+VALUES ('C', 1100, 'pc');
+Query OK, 1 row affected (0.01 sec)
+
+INSERT INTO pc
+VALUES (1100, 3.2, 1024, 180, 2499);
+Query OK, 1 row affected (0.01 sec)
+
+
+2. Insert the facts that for every PC there is a laptop with the same manufacturer, speed, RAM, and hard disk, a 17-inch screen, a model number 1100 greater, and a price $500 more.
+
+INSERT INTO pc
+VALUES (1100, 3.2, 1024, 180, 2499);
+Query OK, 1 row affected (0.01 sec)
+
+INSERT INTO laptop
+SELECT model, speed, ram, hdisk, 17, price + 500
+FROM pc;
+Query OK, 14 rows affected (0.02 sec)
+Records: 14  Duplicates: 0  Warnings: 0
+
+
+3. Delete all PC ’s with less than 100 gigabytes of hard disk.
+
+DELETE pc, p
+FROM pc JOIN product p
+ON pc.model = p.model
+WHERE pc.hdisk < 100;
+Query OK, 4 rows affected (0.01 sec)
+
+
+4. Delete all laptops made by a manufacturer that doesn’t make printers.
+
+DELETE l, p
+FROM laptop l
+JOIN product p
+ON l.model = p.model
+WHERE p.maker NOT IN (
+SELECT maker 
+FROM (
+SELECT maker
+FROM product p1
+WHERE p1.type = 'printer'
+GROUP BY p1.maker) x);
+Query OK, 28 rows affected (0.02 sec)
+
+
+
+5. Manufacturer A buys manufacturer B. Change all products made by B so that they are now made by A.
+
+UPDATE product
+SET maker = 'A'
+WHERE maker = 'B';
+Query OK, 3 rows affected (0.01 sec)
+Rows matched: 3  Changed: 3  Warnings: 0
+
+
+6. For each PC, double the amount of RAM and add 60 gigabytes to the amount of hard disk.
+
+UPDATE pc 
+SET ram = ram * 2 
+, hdisk = hdisk + 60;
+Query OK, 12 rows affected (0.02 sec)
+Rows matched: 12  Changed: 12  Warnings: 0
+
+
+7. For each laptop made by manufacturer B, add one inch to the screen size and subtract $100 from the price.
+
+UPDATE laptop l
+JOIN product p
+ON l.model = p.model
+SET l.screen = l.screen + 1 
+, l.price = l.price - 100
+WHERE p.maker = 'B';
+Query OK, 0 rows affected (0.01 sec)
+Rows matched: 0  Changed: 0  Warnings: 0
+
+
+8. The two British battleships of the Nelson class — Nelson and Rodney — were both launched in 1927, had nine 16-inch guns, and a displacement of 34,000 tons. Insert these facts into the database.
+
+INSERT INTO classes 
+VALUES ('Nelson', 'bb', 'Gt. Britain', 9, 16, 34000);
+Query OK, 1 row affected (0.01 sec)
+
+INSERT INTO ships
+VALUES ('Nelson', 'Nelson', 1927) 
+, ('Rodney', 'Nelson', 1927);
+Query OK, 2 rows affected (0.01 sec)
+Records: 2  Duplicates: 0  Warnings: 0
+
+
+9. Two of the three battleships of the Italian Vittorio Veneto class — Vittorio Veneto and Italia — were launched in 1940; the third ship of that class, Roma, was launched in 1942. Each had nine 15-inch guns and a displacement of 41,000 tons. Insert these facts into the database.
+
+INSERT INTO classes
+VALUES ('Vittoro Venito', 'Italy', 'bb', 9, 15, 41000);
+Query OK, 1 row affected (0.01 sec)
+
+INSERT INTO ships 
+VALUES ('Vittoro Venito', 'Vittoro Venito', 1940) 
+, ('Italia', 'Vittoro Venito', 1940) 
+, ('Roma', 'Vittoro Venito', 1941);
+Query OK, 3 rows affected (0.01 sec)
+Records: 3  Duplicates: 0  Warnings: 0
+
+
+10. Delete from Ships all ships sunk in battle.
+
+DELETE ships
+FROM ships
+JOIN outcomes o
+ON ships.name = o.ship
+WHERE o.result = 'sunk';
+Query OK, 1 row affected (0.01 sec)
+
+
+11. Modify the Classes relation so that gun bores are measured in centimeters (one inch = 2.54 centimeters) and displacements are measured in metric tons (one metric ton = 1.1 tons). (Note: you may have to change the data type of bore and displacement accordingly.)
+
+UPDATE classes 
+SET bore = bore * 2.54
+, displacement = displacement / 1.1;
+Query OK, 10 rows affected (0.01 sec)
+Rows matched: 10  Changed: 10  Warnings: 0
+
+
+12. Delete all classes with fewer than three ships. (Note: This deletion may be rejected due to violation of foreign key constraints.)
+
+DELETE classes
+FROM classes
+WHERE class IN (
+SELECT class
+FROM (
+SELECT c.class
+FROM classes c
+JOIN ships s 
+ON c.class = s.class
+GROUP BY c.class
+HAVING COUNT(*) < 3) x);
+ERROR 1451 (23000): Cannot delete or update a parent row: a foreign key constraint fails ("battleship"."ships", CONSTRAINT "ships_ibfk_1" FOREIGN KEY ("class") REFERENCES "classes" ("class"))
+
+
+51. Find the pnames of parts for which there is some supplier.
+
+SELECT DISTINCT pname -- not sure if distinct was wanted here
+FROM parts p, catalog c
+WHERE p.pid = c.pid
+-- next line is superflous based on the relation's constraints
+AND c.sid IS NOT NULL;
++-----------------------------------+
+| pname                             |
++-----------------------------------+
+| Left Handed Bacon Stretcher Cover |
+| Acme Widget Washer                |
+| I Brake for Crop Circles Sticker  |
+| Anti-Gravity Turbine Generator    |
+| Fire Hydrant Cap                  |
+| 7 Segment Display                 |
++-----------------------------------+
+6 rows in set (0.00 sec)
+
+
+52. Find the snames of suppliers who supply every part.
+
+SELECT s.sname
+FROM suppliers s
+WHERE NOT EXISTS (
+SELECT p.pid
+FROM parts p
+WHERE NOT EXISTS (
+SELECT c.sid
+FROM catalog c
+WHERE c.sid = s.sid
+AND c.pid = p.pid));
+Empty set (0.03 sec)
+
+
+53. Find the snames of suppliers who supply every red part.
+
+SELECT s.sname 
+FROM suppliers s 
+WHERE NOT EXISTS ( 
+SELECT p.pid 
+FROM parts p 
+WHERE p.color = 'Red' 
+AND NOT EXISTS ( 
+SELECT c.sid 
+FROM catalog c 
+WHERE c.sid = s.sid 
+AND c.pid = p.pid));
++----------------------+
+| sname                |
++----------------------+
+| Big Red Tool and Die |
++----------------------+
+1 row in set (0.01 sec)
+
+
+54. Find the pnames of parts supplied by "Acme Widget Suppliers" and no one else.
+
+SELECT p.pname
+FROM parts p
+WHERE EXISTS (
+SELECT *
+FROM catalog c1
+JOIN suppliers s1 ON c1.sid = s1.sid
+WHERE c1.pid = p.pid 
+AND s1.sname = 'Acme Widget Suppliers')
+AND NOT EXISTS (
+SELECT *
+FROM catalog c2
+JOIN suppliers s2 ON c2.sid = s2.sid
+WHERE c2.pid = p.pid 
+AND s2.sname <> 'Acme Widget Suppliers');
++--------------------+
+| pname              |
++--------------------+
+| Acme Widget Washer |
++--------------------+
+1 row in set (0.29 sec)
+
+
+55. Find the sids of suppliers who charge more for some part than the average cost of that part (averaged over all the suppliers who supply that part).
+
+SELECT c1.sid
+FROM catalog c1
+WHERE cost > (
+SELECT AVG(c2.cost)
+FROM catalog c2
+WHERE c2.pid = c1.pid);
++-----+
+| sid |
++-----+
+|   1 |
+|   2 |
+|   3 |
++-----+
+3 rows in set (0.01 sec)
+
+
+56. For each part, find the sname of the supplier who charges the most for that part.
+
+SELECT c1.pid, s.sname
+FROM catalog c1
+JOIN suppliers s
+ON c1.sid = s.sid
+WHERE cost = (
+SELECT MAX(c2.cost)
+FROM catalog c2
+WHERE c2.pid = c1.pid)
+ORDER BY c1.pid;
++-----+-----------------------+
+| pid | sname                 |
++-----+-----------------------+
+|   1 | Big Red Tool and Die  |
+|   3 | Big Red Tool and Die  |
+|   4 | Acme Widget Suppliers |
+|   5 | Alien Aircaft Inc.    |
+|   6 | Alien Aircaft Inc.    |
+|   7 | Alien Aircaft Inc.    |
+|   8 | Perfunctory Parts     |
+|   9 | Perfunctory Parts     |
++-----+-----------------------+
+8 rows in set (0.00 sec)
+
+
+57. Find the sids of suppliers who supply only red parts.
+
+SELECT DISTINCT c1.sid 
+FROM catalog c1 
+JOIN parts p  
+ON c1.pid = p.pid 
+WHERE color = 'Red' 
+AND NOT EXISTS ( 
+SELECT * 
+FROM catalog c2 
+JOIN parts p2 
+ON c2.pid = p2.pid 
+WHERE c2.sid = c1.sid 
+AND p2.color <> 'Red');
++-----+
+| sid |
++-----+
+|   2 |
++-----+
+1 row in set (0.01 sec)
+
+
+58. Find the sids of suppliers who supply a red part or a green part.
+
+SELECT DISTINCT c.sid 
+FROM catalog c, parts p  
+WHERE c.pid = p.pid 
+AND p.color IN ('Red', 'Green');
++-----+
+| sid |
++-----+
+|   2 |
+|   1 |
+|   3 |
++-----+
+3 rows in set (0.01 sec)
+
+
+59. Find the sids of suppliers who supply a red part and a green part.
+
+SELECT DISTINCT c.sid 
+FROM catalog c, parts p  
+WHERE c.pid = p.pid 
+AND p.color IN ('Red', 'Green')
+GROUP BY c.sid
+HAVING COUNT(DISTINCT p.color) = 2;
++-----+
+| sid |
++-----+
+|   3 |
++-----+
+1 row in set (0.01 sec)
+
+
+60. Find the sids of suppliers who supply at least two red parts and at least two green parts.
+
+SELECT DISTINCT c.sid  
+FROM catalog c, parts p 
+WHERE c.pid = p.pid  
+AND p.color IN ('Red', 'Green') 
+GROUP BY c.sid 
+HAVING SUM(p.color = 'Red') >= 2
+-- evaluates to bool and sums as T,F = 1,0
+-- this delights and disgusts me
+AND SUM(p.color = 'Green') >= 2;
+Empty set (0.01 sec)
+
+
+61. For every supplier that only supplies green parts, print the name of the supplier and the total number of parts that she supplies.
+
+SELECT s.sname, COUNT(c1.pid) AS n_parts 
+FROM catalog c1 
+JOIN parts p  
+ON c1.pid = p.pid 
+JOIN suppliers s
+ON c1.sid = s.sid
+WHERE color = 'Green' 
+AND NOT EXISTS ( 
+SELECT * 
+FROM catalog c2 
+JOIN parts p2 
+ON c2.pid = p2.pid 
+WHERE c2.sid = c1.sid 
+AND p2.color <> 'Red')
+GROUP BY s.sname;
+Empty set (0.00 sec)
+
+
+62. For every supplier that supplies a green part and a red part, print the name and price of the most expensive part that she supplies.
+
+SELECT s.sname, MAX(c.cost) AS max_price
+FROM catalog c, parts p, suppliers s  
+WHERE c.pid = p.pid 
+AND c.sid = s.sid
+AND p.color IN ('Red', 'Green')
+GROUP BY c.sid
+HAVING COUNT(DISTINCT p.color) = 2;
++-------------------+-----------+
+| sname             | max_price |
++-------------------+-----------+
+| Perfunctory Parts |     12.50 |
++-------------------+-----------+
+1 row in set (0.01 sec)
+
+
+63. Print the names and ages of each employee who works in both the Hardware department and the Software department.
+
+SELECT e.ename, e.age
+FROM emp e
+JOIN works w 
+ON e.eid = w.eid
+JOIN dept d
+ON w.did = d.did
+WHERE d.dname IN ('Hardware', 'Software')
+GROUP BY e.ename, e.age
+HAVING COUNT(DISTINCT d.dname) = 2;
++----------------+------+
+| ename          | age  |
++----------------+------+
+| Mary Johnson   |   44 |
+| Stanley Browne |   23 |
++----------------+------+
+2 rows in set (0.01 sec)
+
+
+64. For each department with more than 20 full-time-equivalent employees (i.e., where the part-time and full-time employees add up to at least that many full-time employees), print the did together with the number of employees that work in that department.
+
+SELECT did, COUNT(eid) AS n_employees
+FROM works
+GROUP BY did
+HAVING SUM(pct_time / 100) > 20;
++-----+-------------+
+| did | n_employees |
++-----+-------------+
+|   2 |          26 |
+|   6 |          22 |
++-----+-------------+
+2 rows in set (0.01 sec)
+
+
+65. Print the name of each employee whose salary exceeds the budget of all of the departments that he or she works in.
+
+SELECT t.ename
+FROM (
+SELECT e.ename, e.salary, SUM(d.budget) AS total_budget
+FROM emp e
+JOIN works w ON e.eid = w.eid
+JOIN dept d ON w.did = d.did
+GROUP BY e.ename, e.salary
+) AS t
+WHERE t.salary > t.total_budget;
++-------------+
+| ename       |
++-------------+
+| Linda Davis |
++-------------+
+1 row in set (0.00 sec)
+
+
+66. Find the managerids of managers who manage only departments with budgets greater than $1 million.
+
+SELECT d.managerid
+FROM dept d
+GROUP BY d.managerid
+HAVING MIN(d.budget) > 1000000;
++-----------+
+| managerid |
++-----------+
+| 287321212 |
+| 578875478 |
++-----------+
+2 rows in set (0.00 sec)
+
+
+67. Find the enames of managers who manage the departments with the largest budgets.
+
+SELECT ename
+FROM emp
+WHERE eid IN (
+SELECT managerid
+FROM dept
+WHERE budget = (
+SELECT MAX(budget) FROM dept));
++----------------+
+| ename          |
++----------------+
+| Michael Miller |
+| Edward Baker   |
++----------------+
+2 rows in set (0.01 sec)
+
+
+68. If a manager manages more than one department, he or she controls the sum of all the budgets for those departments. Find the managerids of managers who control more than $5 million.
+
+SELECT managerid
+FROM dept
+GROUP BY managerid
+HAVING SUM(budget) > 5000000;
++-----------+
+| managerid |
++-----------+
+| 287321212 |
+| 578875478 |
++-----------+
+2 rows in set (0.01 sec)
+
+
+69. Find the managerids of managers who control the largest amounts of budgets (A manager may manage more than one department).
+
+SELECT managerid
+FROM dept
+GROUP BY managerid
+HAVING SUM(budget) = (
+SELECT MAX(total_budget)
+FROM (
+SELECT managerid, SUM(budget) AS total_budget
+FROM dept
+GROUP BY managerid
+) AS t);
++-----------+
+| managerid |
++-----------+
+| 287321212 |
+| 578875478 |
++-----------+
+2 rows in set (0.01 sec)
+
+
+70. Find the enames of managers who manage only departments with budgets larger than $1 million, but at least one department with budget less than $5 million.
+
+SELECT e.ename
+FROM emp e
+WHERE eid in (
+SELECT d.managerid
+FROM dept d
+GROUP BY d.managerid
+HAVING MIN(d.budget > 1000000)
+AND COUNT(d.budget < 5000000) >= 1);
++----------------+
+| ename          |
++----------------+
+| Michael Miller |
+| Edward Baker   |
++----------------+
+2 rows in set (0.01 sec)
+
+
+71. Find the names of all junior students (level = JR) who are enrolled in a class taught by Ivana Teach.
+
+
+72. Find the names of students not enrolled in any class.
+
+
+73. Find the students who are enrolled in two classes taught by the same faculty. List student names together with the two class names.
+
+
+74. Find the names of faculty members who teach in every room in which some class is taught.
+
+
+75. Print the level and the average age of students for that level, for each level.
+
+
+76. Print the level and the average age of students for that level, for all levels except JR.
+
+
+77. For each faculty member that has taught classes only in room R128, print the faculty member's name and the total number of classes she or he has taught.
+
+
+78. Find the names of students enrolled in the maximum number of classes.
+
+
+79. Find the names of faculty members for whom the combined enrollment of the courses that they teach is less than five.
+
+
+80. Find the age of the oldest student who is either a History major or enrolled in a course taught by Ivana Teach.
+
+
+81. Find the names of all classes that either meet in room R128 or have five or more students enrolled.
+
+
+82. For each age value that appears in the Student table, find the level value that appears most often. For example, if there are more FR level students aged 18 than SR, JR, or SO students aged 18, you should print the pair (18, FR).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
