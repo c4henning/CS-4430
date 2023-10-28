@@ -513,14 +513,87 @@ AND COUNT(d.budget < 5000000) >= 1);
 
 71. Find the names of all junior students (level = JR) who are enrolled in a class taught by Ivana Teach.
 
+SELECT s.sname 
+FROM student s 
+JOIN enrolled e ON s.snum = e.snum 
+JOIN class c ON e.cname = c.cname 
+JOIN faculty f ON c.fid = f.fid 
+WHERE s.level = 'JR' 
+AND f.fname = 'Ivana Teach';
++--------------------+
+| sname              |
++--------------------+
+| Christopher Garcia |
+| Paul Hall          |
++--------------------+
+2 rows in set (0.00 sec)
+
 
 72. Find the names of students not enrolled in any class.
+
+SELECT s.sname
+FROM student s
+LEFT JOIN enrolled e
+ON s.snum = e.snum
+WHERE e.cname IS NULL;
++-----------------+
+| sname           |
++-----------------+
+| Maria White     |
+| Charles Harris  |
+| Angela Martinez |
+| Thomas Robinson |
+| Margaret Clark  |
+| Dorthy Lewis    |
+| Daniel Lee      |
+| Nancy Allen     |
+| Mark Young      |
+| Donald King     |
+| George Wright   |
+| Steven Green    |
+| Edward Baker    |
++-----------------+
+13 rows in set (0.00 sec)
 
 
 73. Find the students who are enrolled in two classes taught by the same faculty. List student names together with the two class names.
 
+SELECT s.sname
+, e1.cname AS class1
+, e2.cname AS class2
+FROM student s
+JOIN enrolled e1 ON s.snum = e1.snum
+JOIN class c1 ON e1.cname = c1.cname
+JOIN enrolled e2 ON s.snum = e2.snum
+JOIN class c2 ON e2.cname = c2.cname
+WHERE c1.fid = c2.fid 
+AND e1.cname < e2.cname;
++-------------+-----------------+-------------------------+
+| sname       | class1          | class2                  |
++-------------+-----------------+-------------------------+
+| Karen Scott | Data Structures | Operating System Design |
++-------------+-----------------+-------------------------+
+1 row in set (0.00 sec)
+
 
 74. Find the names of faculty members who teach in every room in which some class is taught.
+
+SELECT DISTINCT f.fname
+FROM faculty f
+WHERE NOT EXISTS (
+SELECT c1.room
+FROM class c1
+WHERE NOT EXISTS (
+SELECT c2.cname
+FROM class c2
+WHERE c1.room = c2.room 
+AND c2.fid = f.fid));
++-----------------+
+| fname           |
++-----------------+
+| Richard Jackson |
++-----------------+
+1 row in set (0.01 sec)
 
 
 75. Print the level and the average age of students for that level, for each level.

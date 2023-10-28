@@ -1,58 +1,300 @@
 Database 5: university
-The university database has the following relations:
+
 
 Student(snum:integer, sname:string, major:string, level:string, age:integer)
 Class(cname:string, meets_at:string, room:string, fid:integer)
 Enrolled(snum:integer, cname:string)
 Faculty(fid:integer, fname:string, deptid:integer)
-The meaning of these relations is straightforward; for example, Enrolled has one record per student-class pair such that the student is enrolled in the class. Write the following queries in SQL. No duplicates should be printed in any of the answers.
+
+
 
 Question 7 (1 point) 
 Find the names of all junior students (level = JR) who are enrolled in a class taught by Ivana Teach.
 
+SELECT s.sname 
+FROM student s 
+JOIN enrolled e ON s.snum = e.snum 
+JOIN class c ON e.cname = c.cname 
+JOIN faculty f ON c.fid = f.fid 
+WHERE s.level = 'JR' 
+AND f.fname = 'Ivana Teach';
++--------------------+
+| sname              |
++--------------------+
+| Christopher Garcia |
+| Paul Hall          |
++--------------------+
+2 rows in set (0.00 sec)
+
 Question 7 options:
+
 Question 8 (1 point) 
 Find the names of students not enrolled in any class.
 
+SELECT s.sname
+FROM student s
+LEFT JOIN enrolled e
+ON s.snum = e.snum
+WHERE e.cname IS NULL;
++-----------------+
+| sname           |
++-----------------+
+| Maria White     |
+| Charles Harris  |
+| Angela Martinez |
+| Thomas Robinson |
+| Margaret Clark  |
+| Dorthy Lewis    |
+| Daniel Lee      |
+| Nancy Allen     |
+| Mark Young      |
+| Donald King     |
+| George Wright   |
+| Steven Green    |
+| Edward Baker    |
++-----------------+
+13 rows in set (0.00 sec)
+
+
 Question 8 options:
+
 Question 9 (1 point) 
 Find the students who are enrolled in two classes taught by the same faculty. List student names together with the two class names.
 
+SELECT s.sname
+, e1.cname AS class1
+, e2.cname AS class2
+FROM student s
+JOIN enrolled e1 ON s.snum = e1.snum
+JOIN class c1 ON e1.cname = c1.cname
+JOIN enrolled e2 ON s.snum = e2.snum
+JOIN class c2 ON e2.cname = c2.cname
+WHERE c1.fid = c2.fid 
+AND e1.cname < e2.cname;
++-------------+-----------------+-------------------------+
+| sname       | class1          | class2                  |
++-------------+-----------------+-------------------------+
+| Karen Scott | Data Structures | Operating System Design |
++-------------+-----------------+-------------------------+
+1 row in set (0.00 sec)
+
+
 Question 9 options:
+
 Question 10 (1 point) 
 Find the names of faculty members who teach in every room in which some class is taught.
 
+SELECT DISTINCT f.fname
+FROM faculty f
+WHERE NOT EXISTS (
+SELECT c1.room
+FROM class c1
+WHERE NOT EXISTS (
+SELECT c2.cname
+FROM class c2
+WHERE c1.room = c2.room 
+AND c2.fid = f.fid));
++-----------------+
+| fname           |
++-----------------+
+| Richard Jackson |
++-----------------+
+1 row in set (0.01 sec)
+
+
 Question 10 options:
+
 Question 11 (1 point) 
 Print the level and the average age of students for that level, for each level.
 
+mysql> SELECT level, AVG(age)
+    -> FROM student
+    -> GROUP BY level;
++-------+----------+
+| level | AVG(age) |
++-------+----------+
+| SR    |  20.7143 |
+| JR    |  19.5000 |
+| SO    |  18.4000 |
+| FR    |  17.6667 |
++-------+----------+
+4 rows in set (0.02 sec)
+
+
 Question 11 options:
+
 Question 12 (1 point) 
 Print the level and the average age of students for that level, for all levels except JR.
 
+SELECT level, AVG(age) 
+FROM student 
+WHERE level <> 'JR' 
+GROUP BY level;
++-------+----------+
+| level | AVG(age) |
++-------+----------+
+| SR    |  20.7143 |
+| SO    |  18.4000 |
+| FR    |  17.6667 |
++-------+----------+
+3 rows in set (0.01 sec)
+
 Question 12 options:
+
 Question 13 (1 point) 
 For each faculty member that has taught classes only in room R128, print the faculty member's name and the total number of classes she or he has taught.
 
+SELECT f.fname, COUNT(*)
+FROM faculty f
+JOIN class c ON f.fid = c.fid
+WHERE NOT EXISTS (
+SELECT 1
+FROM class c2
+WHERE c2.room <> 'R128'
+AND c2.fid = c.fid)
+GROUP BY f.fname;
++--------------+----------+
+| fname        | COUNT(*) |
++--------------+----------+
+| Robert Brown |        1 |
++--------------+----------+
+1 row in set (0.01 sec)
+
+
 Question 13 options:
+
 Question 14 (1 point) 
 Find the names of students enrolled in the maximum number of classes.
 
+SELECT s.sname
+FROM student s
+JOIN enrolled e
+ON s.snum = e.snum
+GROUP BY s.sname
+HAVING COUNT(e.cname) = (
+SELECT MAX(class_count)
+FROM (
+SELECT e2.snum, COUNT(e2.cname) AS class_count 
+FROM enrolled e2
+GROUP BY e2.snum) t);
++----------------+
+| sname          |
++----------------+
+| Juan Rodriguez |
+| Ana Lopez      |
++----------------+
+2 rows in set (0.02 sec)
+
+
 Question 14 options:
+
 Question 15 (1 point) 
 Find the names of faculty members for whom the combined enrollment of the courses that they teach is less than five.
 
+
+SELECT f.fname
+FROM faculty f
+JOIN class c ON c.fid = f.fid
+JOIN enrolled e ON e.cname = c.cname
+GROUP BY f.fname
+HAVING COUNT(e.snum) < 5;
++------------------+
+| fname            |
++------------------+
+| John Williams    |
+| Jennifer Thomas  |
+| Mary Johnson     |
+| Patricia Jones   |
+| Elizabeth Taylor |
+| Richard Jackson  |
+| William Moore    |
++------------------+
+7 rows in set (0.00 sec)
+
+
 Question 15 options:
+
 Question 16 (1 point) 
 Find the age of the oldest student who is either a History major or enrolled in a course taught by Ivana Teach.
 
+SELECT MAX(age)
+FROM student
+WHERE EXISTS(
+SELECT *
+FROM enrolled e
+JOIN class c ON c.cname = e.cname
+JOIN faculty f ON f.fid = c.fid
+WHERE f.fname = 'Ivana Teach')
+OR major = 'History';
++----------+
+| MAX(age) |
++----------+
+|       22 |
++----------+
+1 row in set (0.00 sec)
+
+
 Question 16 options:
+
 Question 17 (1 point) 
 Find the names of all classes that either meet in room R128 or have five or more students enrolled.
 
+
+SELECT cname
+FROM class
+WHERE room = 'r128'
+OR cname IN (
+SELECT cname
+FROM enrolled
+GROUP BY cname
+HAVING COUNT(snum) >= 5);
++--------------------------+
+| cname                    |
++--------------------------+
+| Archaeology of the Incas |
+| Dairy Herd Management    |
+| Data Structures          |
+| Database Systems         |
+| Intoduction to Math      |
+| Operating System Design  |
+| Patent Law               |
++--------------------------+
+7 rows in set (0.01 sec)
+
+
 Question 17 options:
+
 Question 18 (1 point) 
 For each age value that appears in the Student table, find the level value that appears most often. For example, if there are more FR level students aged 18 than SR, JR, or SO students aged 18, you should print the pair (18, FR).
+
+
+WITH t AS (
+SELECT age, level, COUNT(*) AS count
+FROM student
+GROUP BY age, level)
+
+SELECT t1.age, t1.level
+FROM t t1
+JOIN (
+SELECT age, MAX(count) AS max_count
+FROM t
+GROUP BY age
+) t2 
+ON t1.age = t2.age 
+AND t1.count = t2.max_count
+ORDER BY t1.age;
++------+-------+
+| age  | level |
++------+-------+
+|   17 | FR    |
+|   18 | FR    |
+|   19 | SO    |
+|   20 | JR    |
+|   21 | SR    |
+|   22 | SR    |
++------+-------+
+6 rows in set (0.01 sec)
+
 
 Question 18 options:
 Database 6: flights
@@ -65,50 +307,84 @@ Certified(eid:integer, aid:integer)
 Employees(eid:integer, ename:string, salary:integer)
 Note that the Employees relation describes pilots and other kinds of employees as well; every pilot is certified for some aircraft, and only pilots are certified to fly. Write each of the following queries in SQL:
 
+
 Question 19 (1 point) 
 Find the names of aircraft such that all pilots certified to operate them earn more than $80,000.
 
+
+
 Question 19 options:
+
 Question 20 (1 point) 
 For each pilot who is certified for more than three aircraft, find the eid and the maximum cruising range of the aircraft for which she or he is certified.
 
+
+
 Question 20 options:
+
 Question 21 (1 point) 
 Find the names of pilots whose salary is less than the price of the cheapest route from Los Angeles to Honolulu.
 
+
+
 Question 21 options:
+
 Question 22 (1 point) 
 For all aircraft with cruising range over 1000 miles, find the name of the aircraft and the average salary of all pilots certified for this aircraft.
 
+
+
 Question 22 options:
+
 Question 23 (1 point) 
 Find the aids of all aircraft that can be used on routes from Los Angeles to Chicago.
 
+
+
 Question 23 options:
+
 Question 24 (1 point) 
 Identify the routes that can be piloted by every pilot who makes more than $100,000.
 
+
+
 Question 24 options:
+
 Question 25 (1 point) 
 Print the names of pilots who can operate aircrafts with cruising range greater than 3000 miles but are not certified on any Boeing aircraft.
 
+
+
 Question 25 options:
+
 Question 26 (1 point) 
 Compute the difference between the average salary of pilots and the average salary of all employees (including pilots).
 
+
+
 Question 26 options:
+
 Question 27 (1 point) 
 Print the name and salary of every non-pilot whose salary is more than the average salary for pilots.
 
+
+
 Question 27 options:
+
 Question 28 (1 point) 
 Print the names of employees who are certified only on aircrafts with cruising range longer than 1000 miles.
 
+
+
 Question 28 options:
+
 Question 29 (1 point) 
 Print the names of employees who are certified only on aircrafts with cruising range longer than 1000 miles, but on at least two such aircrafts.
 
+
+
 Question 29 options:
+
 Question 30 (1 point) 
 Print the names of employees who are certified only on aircrafts with cruising range longer than 1000 miles and who are certified on some Boeing aircraft.
 
