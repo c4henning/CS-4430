@@ -107,9 +107,9 @@ Question 10 options:
 Question 11 (1 point) 
 Print the level and the average age of students for that level, for each level.
 
-mysql> SELECT level, AVG(age)
-    -> FROM student
-    -> GROUP BY level;
+SELECT level, AVG(age)
+FROM student
+GROUP BY level;
 +-------+----------+
 | level | AVG(age) |
 +-------+----------+
@@ -269,18 +269,17 @@ For each age value that appears in the Student table, find the level value that 
 
 
 WITH t AS (
-SELECT age, level, COUNT(*) AS count
-FROM student
-GROUP BY age, level)
+	SELECT age, level, COUNT(*) AS count
+	FROM student
+	GROUP BY age, level)
 
 SELECT t1.age, t1.level
 FROM t t1
 JOIN (
-SELECT age, MAX(count) AS max_count
-FROM t
-GROUP BY age
-) t2 
-ON t1.age = t2.age 
+	SELECT age, MAX(count) AS max_count
+	FROM t
+	GROUP BY age
+     ) t2 ON t1.age = t2.age 
 AND t1.count = t2.max_count
 ORDER BY t1.age;
 +------+-------+
@@ -311,6 +310,37 @@ Note that the Employees relation describes pilots and other kinds of employees a
 Question 19 (1 point) 
 Find the names of aircraft such that all pilots certified to operate them earn more than $80,000.
 
+SELECT DISTINCT a.aname
+FROM aircraft a 
+WHERE a.aid IN (
+SELECT c.aid
+FROM certified c 
+JOIN employees e ON c.eid = e.eid
+WHERE NOT EXISTS (
+SELECT *
+FROM employees e1
+WHERE e1.eid = e.eid
+AND e1.salary < 80000));
++--------------------------------+
+| aname                          |
++--------------------------------+
+| Boeing 747-400                 |
+| Boeing 737-800                 |
+| Airbus A340-300                |
+| British Aerospace Jetstream 41 |
+| Embraer ERJ-145                |
+| SAAB 340                       |
+| Piper Archer III               |
+| Tupolev 154                    |
+| Lockheed L1011                 |
+| Boeing 757-300                 |
+| Boeing 777-300                 |
+| Boeing 767-400ER               |
+| Airbus A320                    |
+| Airbus A319                    |
+| Boeing 727                     |
++--------------------------------+
+15 rows in set (0.00 sec)
 
 
 Question 19 options:
@@ -318,6 +348,19 @@ Question 19 options:
 Question 20 (1 point) 
 For each pilot who is certified for more than three aircraft, find the eid and the maximum cruising range of the aircraft for which she or he is certified.
 
+SELECT c.eid, MAX(a.cruisingrange) as max_range 
+FROM certified c 
+JOIN aircraft a ON c.aid = a.aid 
+GROUP BY c.eid 
+HAVING COUNT(c.aid) > 3;
++-----------+-----------+
+| eid       | max_range |
++-----------+-----------+
+| 142519864 |      8430 |
+| 269734834 |      8430 |
+| 567354612 |      8430 |
++-----------+-----------+
+3 rows in set (0.01 sec)
 
 
 Question 20 options:
@@ -325,6 +368,19 @@ Question 20 options:
 Question 21 (1 point) 
 Find the names of pilots whose salary is less than the price of the cheapest route from Los Angeles to Honolulu.
 
+SELECT e.ename 
+FROM employees e 
+WHERE e.salary < ( 
+SELECT MIN(f.price) 
+FROM flights f 
+WHERE f.origin = 'Los Angeles' 
+AND f.destination = 'Honolulu');
++-------------+
+| ename       |
++-------------+
+| Milo Brooks |
++-------------+
+1 row in set (0.07 sec)
 
 
 Question 21 options:
@@ -332,6 +388,31 @@ Question 21 options:
 Question 22 (1 point) 
 For all aircraft with cruising range over 1000 miles, find the name of the aircraft and the average salary of all pilots certified for this aircraft.
 
+SELECT a.aname, AVG(e.salary)
+FROM aircraft a
+JOIN certified c ON a.aid = c.aid
+JOIN employees e on c.eid = e.eid
+WHERE cruisingrange > 1000
+GROUP BY a.aname;
++--------------------------------+---------------+
+| aname                          | AVG(e.salary) |
++--------------------------------+---------------+
+| Boeing 747-400                 | 244776.750000 |
+| Boeing 737-800                 | 191700.250000 |
+| Airbus A340-300                | 217597.666667 |
+| British Aerospace Jetstream 41 | 220251.333333 |
+| Embraer ERJ-145                | 182838.200000 |
+| SAAB 340                       | 118113.500000 |
+| Tupolev 154                    | 205001.250000 |
+| Lockheed L1011                 | 242685.750000 |
+| Boeing 757-300                 | 189508.571429 |
+| Boeing 777-300                 | 257973.333333 |
+| Boeing 767-400ER               | 209557.000000 |
+| Airbus A320                    | 243198.333333 |
+| Airbus A319                    | 201283.666667 |
+| Boeing 727                     | 273215.500000 |
++--------------------------------+---------------+
+14 rows in set (0.00 sec)
 
 
 Question 22 options:
@@ -339,6 +420,29 @@ Question 22 options:
 Question 23 (1 point) 
 Find the aids of all aircraft that can be used on routes from Los Angeles to Chicago.
 
+SELECT aid
+FROM aircraft
+WHERE cruisingrange > (
+SELECT MIN(distance)
+FROM flights
+WHERE origin = 'Los Angeles'
+AND destination = 'Chicago');
++-----+
+| aid |
++-----+
+|   1 |
+|   2 |
+|   3 |
+|   6 |
+|   8 |
+|   9 |
+|  10 |
+|  11 |
+|  12 |
+|  13 |
+|  14 |
++-----+
+11 rows in set (0.01 sec)
 
 
 Question 23 options:
@@ -347,6 +451,18 @@ Question 24 (1 point)
 Identify the routes that can be piloted by every pilot who makes more than $100,000.
 
 
+SELECT *
+FROM flights
+WHERE distance < (
+SELECT MIN(t.max_range) 
+FROM (
+SELECT MAX(cruisingrange) as max_range
+FROM employees e
+JOIN certified c ON e.eid = c.eid
+JOIN aircraft  a ON c.aid = a.aid
+WHERE salary > 100000
+GROUP BY c.eid) t);
+
 
 Question 24 options:
 
@@ -354,12 +470,42 @@ Question 25 (1 point)
 Print the names of pilots who can operate aircrafts with cruising range greater than 3000 miles but are not certified on any Boeing aircraft.
 
 
+SELECT DISTINCT e.ename
+FROM employees e
+JOIN certified c ON e.eid = c.eid
+JOIN aircraft  a ON c.aid = a.aid
+WHERE a.cruisingrange > 3000
+AND e.eid NOT IN (
+SELECT e.eid
+FROM employees e
+JOIN certified c ON e.eid = c.eid
+JOIN aircraft  a ON c.aid = a.aid
+WHERE a.aname LIKE 'Boeing%');
+
 
 Question 25 options:
 
 Question 26 (1 point) 
 Compute the difference between the average salary of pilots and the average salary of all employees (including pilots).
 
+SELECT a.pilot_avg_salary - b.total_avg_salary
+FROM (
+SELECT AVG(salary) AS pilot_avg_salary
+FROM employees
+WHERE eid IN (
+SELECT eid
+FROM certified)
+) a
+, (
+SELECT AVG(salary) AS total_avg_salary
+FROM employees
+) b;
++-----------------------------------------+
+| a.pilot_avg_salary - b.total_avg_salary |
++-----------------------------------------+
+|                            11449.645161 |
++-----------------------------------------+
+1 row in set (0.02 sec)
 
 
 Question 26 options:
@@ -367,13 +513,51 @@ Question 26 options:
 Question 27 (1 point) 
 Print the name and salary of every non-pilot whose salary is more than the average salary for pilots.
 
-
+SELECT name, salary
+FROM employees 
+WHERE *not pilot*
+AND salary > (
+	SELECT AVG(salary)
+	FROM employees 
+	WHERE *is a pilot*);
 
 Question 27 options:
 
 Question 28 (1 point) 
 Print the names of employees who are certified only on aircrafts with cruising range longer than 1000 miles.
 
+SELECT DISTINCT e.ename
+FROM employees e
+JOIN certified c ON e.eid = c.eid
+JOIN aircraft  a ON c.aid = a.aid
+WHERE NOT EXISTS (
+SELECT 1
+FROM aircraft a2
+WHERE a.aid = a2.aid
+AND a2.cruisingrange < 1000);
++------------------+
+| ename            |
++------------------+
+| Betty Adams      |
+| George Wright    |
+| Karen Scott      |
+| Lisa Walker      |
+| John Williams    |
+| Mary Johnson     |
+| James Smith      |
+| Larry West       |
+| Mark Young       |
+| Lawrence Sperry  |
+| Eric Cooper      |
+| William Moore    |
+| Elizabeth Taylor |
+| Robert Brown     |
+| William Jones    |
+| Joseph Thompson  |
+| Angela Martinez  |
+| Michael Miller   |
++------------------+
+18 rows in set (0.00 sec)
 
 
 Question 28 options:
@@ -381,10 +565,80 @@ Question 28 options:
 Question 29 (1 point) 
 Print the names of employees who are certified only on aircrafts with cruising range longer than 1000 miles, but on at least two such aircrafts.
 
+SELECT e.ename
+FROM employees e
+JOIN certified c ON e.eid = c.eid
+JOIN aircraft  a ON c.aid = a.aid
+WHERE NOT EXISTS (
+SELECT 1
+FROM aircraft a2
+WHERE a.aid = a2.aid
+AND a2.cruisingrange < 1000)
+GROUP BY e.ename
+HAVING COUNT(a.aname) >= 2;
++-----------------+
+| ename           |
++-----------------+
+| Betty Adams     |
+| George Wright   |
+| Karen Scott     |
+| Lisa Walker     |
+| John Williams   |
+| Mary Johnson    |
+| James Smith     |
+| Larry West      |
+| Mark Young      |
+| Lawrence Sperry |
+| Eric Cooper     |
+| William Jones   |
+| Joseph Thompson |
+| Angela Martinez |
+| Michael Miller  |
++-----------------+
+15 rows in set (0.01 sec)
 
 
 Question 29 options:
 
 Question 30 (1 point) 
 Print the names of employees who are certified only on aircrafts with cruising range longer than 1000 miles and who are certified on some Boeing aircraft.
+
+
+SELECT DISTINCT e.ename
+FROM employees e
+JOIN certified c ON e.eid = c.eid
+JOIN aircraft  a ON c.aid = a.aid
+WHERE a.aname LIKE 'Boeing%'
+AND e.eid NOT IN(
+SELECT e.eid 
+FROM employees e
+JOIN certified c ON e.eid = c.eid
+JOIN aircraft  a ON c.aid = a.aid 
+WHERE a.cruisingrange < 1000); 
++----------------+
+| ename          |
++----------------+
+| Karen Scott    |
+| John Williams  |
+| Mary Johnson   |
+| James Smith    |
+| Mark Young     |
+| Michael Miller |
++----------------+
+6 rows in set (0.00 sec)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
