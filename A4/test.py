@@ -30,7 +30,8 @@ while True:
 def insert_cust():
     cursor.execute("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = 'northwind' AND TABLE_NAME = 'Customers'")
     column_names = [row[0] for row in cursor.fetchall()]
-    print(column_names)
+    print("to insert customer into database, fill the\n"
+          "following fields. (fields may be left blank)\n")
     column_names = column_names[1:]
     values = []
     for column_name in column_names:
@@ -40,8 +41,8 @@ def insert_cust():
         values.append(value)
 
     columns = ", ".join(column_names)
-    prepared_values = ", ".join(["%s" for _ in column_names])
-    sql = f"INSERT INTO Customers ({columns}) VALUES ({prepared_values})"
+    placeholder_values = ", ".join(["%s" for _ in column_names])
+    sql = f"INSERT INTO Customers ({columns}) VALUES ({placeholder_values})"
 
     cursor.execute(sql, values)
 
