@@ -28,6 +28,20 @@ while True:
 # CODE BELOW #############################################################
 
 
+def print_pending_orders():
+    cursor.execute("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = 'northwind' AND TABLE_NAME = 'Orders';")
+    result = cursor.fetchall()
+    column_names = [row[0] for row in result]
+    cursor.execute("SELECT * FROM orders WHERE ShippedDate IS NULL ORDER BY OrderDate ASC;")
+    pending_orders = cursor.fetchall()
+    for order in pending_orders:
+        order_details = [f"{col_name: <12}| {value}" for col_name, value in zip(column_names, order)]
+        print("\n".join(order_details), "\n---------------------------------")
+
+
+print_pending_orders()
+
+
 # CODE ABOVE #############################################################
 cnx.rollback()
 cursor.close()
