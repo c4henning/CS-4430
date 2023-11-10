@@ -27,6 +27,56 @@ while True:
         break
 
 
+def main_menu():
+    menu = OptionsMenu()
+    menu.display()
+
+
+def more_options():
+    submenu = MoreOptions()
+    submenu.display()
+
+
+def insert_cust() -> None:
+    cursor.execute("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = 'northwind' AND TABLE_NAME = 'Customers';")
+    result = cursor.fetchall()
+    column_names = [row[0] for row in result]
+    column_names = column_names[1:]
+    print("To insert a customer into database, fill in the\n"
+          "following fields (may be left blank).\n")
+
+    values = []
+    for column_name in column_names:
+        value = input(f"Enter value for '{column_name}': ")
+        if value == '':
+            value = None
+        values.append(value)
+
+    columns = ", ".join(column_names)
+    placeholder_values = ", ".join(["%s" for _ in column_names])
+    sql = f"INSERT INTO Customers ({columns}) VALUES ({placeholder_values});"
+
+    if input("Type (commit) to commit new customer addition\n").lower().startswith('commit'):
+        try:
+            cursor.execute(sql, values)
+            cnx.commit()
+            print("Customer added.")
+
+        except mysql.connector.errors.Error as e:
+            cnx.rollback()
+            print(f"Error {e}.\nCustomer not added; rolling back transaction.")
+
+    else:
+        print("Customer addition canceled.")
+
+
+def db_exit() -> None:
+    print("Closing DB connection and exiting. Goodbye!")
+    cursor.close()
+    cnx.close()
+    quit()
+
+
 def db_message(msg_id: int) -> str:
     query = "SELECT Message FROM messages WHERE ID = '%s'"
     cursor.execute(query, (msg_id,))
@@ -34,67 +84,52 @@ def db_message(msg_id: int) -> str:
     return message[0]
 
 
-class RootMenu:
+class OptionsMenu:
     def __init__(self):
-        self.title = "Root Menu"
+        self.title = "Menu"
         self.options = {
-            1: "add a customer",
-            2: "add an order",
-            3: "remove an order",
-            4: "ship an order",
-            5: "print pending orders",
-            6: "more options",
-            7: "exit"
+            1: ("add a customer", insert_cust),
+            2: ("add an order", db_exit),
+            3: ("remove an order", db_exit),
+            4: ("ship an order", db_exit),
+            5: ("print pending orders", db_exit),
+            6: ("more options", more_options),
+            7: ("exit", db_exit)
         }
 
     def display(self):
         print(f"┌────────────────────────────────────────────────┐\n"
               f"│ {self.title: <47}│\n"
               f"├────────────────────────────────────────────────┤")
-        for opt in self.options:
-            print(f'│ {opt}. {self.options[opt]: <44}│')
-        print(f"└────────────────────────────────────────────────┘")
+        for option_number in self.options:
+            print(f'│ ({option_number}) {self.options[option_number][0]: <43}│')
+        print(f"├────────────────────────────────────────────────┤\n"
+              f"│ Enter a number below to make a selection       │\n"
+              f"└────────────────────────────────────────────────┘")
+        while True:
+            try:
+                selection = int(input("▷ "))
+                self.options[selection][1]()
+            except KeyError:
+                print("Invalid selection")
+            except ValueError:
+                print("Invalid selection.")
 
 
-class Opt1(RootMenu):
+class MoreOptions(OptionsMenu):
     def __init__(self):
         super().__init__()
-        self.title = "add a customer"
+        self.title = "More Options"
         self.options = {
-            1: "add a customer",
-            2: "add an order",
-            3: "remove an order",
-            4: "ship an order",
-            5: "print pending orders",
-            6: "more options",
-            7: "exit"
+            1: ("add things", db_exit),
+            2: ("to this", db_exit),
+            3: ("later", db_exit),
+            4: ("previous menu", main_menu)
         }
 
 
-menu = RootMenu()
-menu.display()
+main_menu()
 
-submenu = Opt1()
-submenu.display()
 
 cursor.close()
 cnx.close()
-
-
-
-
-
-
-
-
-
-def insert_cust():
-    cursor.execute("SELECT COLUMN_NAME"
-                   "FROM INFORMATION_SCHEMA.COLUMNS"
-                   "WHERE TABLE_NAME = 'Customers'")
-    column_names = [row[0] for row in cursor.fetchall()]
-
-    values = []
-    for column_name in column_names:
-        value = input(f"Enter value for '{column_name}': ")
-        values.append(value)
