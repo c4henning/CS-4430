@@ -70,6 +70,25 @@ def insert_cust() -> None:
         print("Customer addition canceled.")
 
 
+def print_pending_orders():
+    cursor.execute("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = 'northwind' AND TABLE_NAME = 'Orders';")
+    result = cursor.fetchall()
+    column_names = [row[0] for row in result]
+
+    cursor.execute("SELECT * FROM orders WHERE ShippedDate IS NULL ORDER BY OrderDate ASC;")
+    pending_orders = cursor.fetchall()
+
+    print("╒══════════════╤══════════════════════╕")
+    for order in pending_orders:
+        order_details = [f"│ {col_name: <12} │ {str(value): <20} │" for col_name, value in zip(column_names, order)]
+        print("\n".join(order_details),
+              "\n╞══════════════╪══════════════════════╡")
+    print(f"│ # pnd orders │ {len(pending_orders): <20} │\n"
+          f"╘══════════════╧══════════════════════╛")
+
+    main_menu()
+
+
 def db_exit() -> None:
     print("Closing DB connection and exiting. Goodbye!")
     cursor.close()
@@ -92,7 +111,7 @@ class OptionsMenu:
             2: ("add an order", db_exit),
             3: ("remove an order", db_exit),
             4: ("ship an order", db_exit),
-            5: ("print pending orders", db_exit),
+            5: ("print pending orders", print_pending_orders),
             6: ("more options", more_options),
             7: ("exit", db_exit)
         }
