@@ -60,14 +60,20 @@ def insert_cust() -> None:
         try:
             cursor.execute(sql, values)
             cnx.commit()
-            print("Customer added.")
+            cursor.execute("SELECT LAST_INSERT_ID();")
+            last_id = cursor.fetchone()[0]
+            print(f"Customer added with ID: {last_id}")
 
         except mysql.connector.errors.Error as e:
             cnx.rollback()
             print(f"Error {e}.\nCustomer not added; rolling back transaction.")
 
+        finally:
+            main_menu()
+
     else:
         print("Customer addition canceled.")
+        main_menu()
 
 
 def print_pending_orders():
@@ -150,5 +156,6 @@ class MoreOptions(OptionsMenu):
 main_menu()
 
 
+print("DEBUG:\nthere was an error. we shouldn't be here.")
 cursor.close()
 cnx.close()
