@@ -76,6 +76,36 @@ def insert_cust() -> None:
         main_menu()
 
 
+def delete_order():
+    # dependant tables to be deleted
+    sql1 = "DELETE od, i, it FROM orders o LEFT JOIN order_details od ON o.OrderID = od.OrderID LEFT JOIN invoices i ON o.OrderID = i.OrderID LEFT JOIN inventory_transactions it ON o.OrderID = it.CustomerOrderID WHERE o.OrderID = %s;"
+    # order may now delete; fk constraints resolved
+    sql2 = "DELETE orders FROM orders WHERE OrderID = %s;"
+    print("Enter an ID to delete an order from the database.\n"
+          "(or leave blank to abort)\n")
+
+    order_id = input("ID to delete: ")
+    if order_id != '':
+        id_to_delete = (order_id,)
+        try:
+            cursor.execute(sql1, id_to_delete)
+            cursor.execute(sql2, id_to_delete)
+            cnx.commit()
+            print(f"Order {id_to_delete[0]} deleted.")
+
+        except mysql.connector.errors.Error as e:
+            cnx.rollback()
+            print(f"Error {e}.\nOrder not deleted; rolling back transaction.")
+
+        except Exception as e:
+            print(e)
+
+        finally:
+            main_menu()
+    else:
+        print("No order selected; aborting")
+        main_menu()
+
 def print_pending_orders():
     cursor.execute("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = 'northwind' AND TABLE_NAME = 'Orders';")
     result = cursor.fetchall()
@@ -128,7 +158,7 @@ class OptionsMenu:
         self.options = {
             1: ("add a customer", insert_cust),
             2: ("add an order", db_exit),
-            3: ("remove an order", db_exit),
+            3: ("remove an order", delete_order),
             4: ("ship an order", db_exit),
             5: ("print pending orders", print_pending_orders),
             6: ("more options", more_options),
