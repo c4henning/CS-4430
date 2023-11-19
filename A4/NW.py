@@ -92,6 +92,19 @@ def print_pending_orders():
     print(f"│ # pnd orders │ {len(pending_orders): <20} │\n"
           f"╘══════════════╧══════════════════════╛")
 
+    if True:
+        file_name = "pending_orders.txt"
+        with open(file_name, "w", encoding="utf-16") as output:
+            output.write("╒══════════════╤══════════════════════╕\n")
+            for order in pending_orders:
+                order_details = [f"│ {col_name: <12} │ {str(value): <20} │" for col_name, value in zip(column_names, order)]
+                output.write("\n".join(order_details))
+                output.write("\n╞══════════════╪══════════════════════╡\n")
+            output.write(f"│ # pnd orders │ {len(pending_orders): <20} │\n")
+            output.write("╘══════════════╧══════════════════════╛\n")
+
+        print("Pending orders file generated with filename:", file_name)
+
     main_menu()
 
 
