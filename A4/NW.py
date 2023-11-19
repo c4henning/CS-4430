@@ -84,7 +84,12 @@ def insert_cust() -> None:
         main_menu()
 
 
-def delete_order():
+def add_order() -> None:
+
+    main_menu()
+
+
+def delete_order() -> None:
     # dependant tables to be deleted
     sql1 = "DELETE od, i, it FROM orders o LEFT JOIN order_details od ON o.OrderID = od.OrderID LEFT JOIN invoices i ON o.OrderID = i.OrderID LEFT JOIN inventory_transactions it ON o.OrderID = it.CustomerOrderID WHERE o.OrderID = %s;"
     # order may now delete; fk constraints resolved
@@ -99,7 +104,7 @@ def delete_order():
             cursor.execute(sql1, id_to_delete)
             cursor.execute(sql2, id_to_delete)
             cnx.commit()
-            print(f"Order {id_to_delete[0]} deleted.")
+            print(f"Order {order_id} deleted.")
 
         except mysql.connector.errors.Error as e:
             cnx.rollback()
@@ -114,7 +119,13 @@ def delete_order():
         print("No order selected; aborting")
         main_menu()
 
-def print_pending_orders():
+
+def ship_order() -> None:
+
+    main_menu()
+
+
+def print_pending_orders() -> None:
     cursor.execute("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = 'northwind' AND TABLE_NAME = 'Orders';")
     result = cursor.fetchall()
     column_names = [row[0] for row in result]
@@ -124,7 +135,8 @@ def print_pending_orders():
 
     print("╒══════════════╤══════════════════════╕")
     for order in pending_orders:
-        order_details = [f"│ {col_name: <12} │ {str(value): <20} │" for col_name, value in zip(column_names, order)]
+        order_details = [f"│ {col_name: <12} │ {str(value): <20} │"
+                         for col_name, value in zip(column_names, order)]
         print("\n".join(order_details),
               "\n╞══════════════╪══════════════════════╡")
     print(f"│ # pnd orders │ {len(pending_orders): <20} │\n"
@@ -135,7 +147,8 @@ def print_pending_orders():
         with open(file_name, "w", encoding="utf-16") as output:
             output.write("╒══════════════╤══════════════════════╕\n")
             for order in pending_orders:
-                order_details = [f"│ {col_name: <12} │ {str(value): <20} │" for col_name, value in zip(column_names, order)]
+                order_details = [f"│ {col_name: <12} │ {str(value): <20} │"
+                                 for col_name, value in zip(column_names, order)]
                 output.write("\n".join(order_details))
                 output.write("\n╞══════════════╪══════════════════════╡\n")
             output.write(f"│ # pnd orders │ {len(pending_orders): <20} │\n")
