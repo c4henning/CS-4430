@@ -1,3 +1,11 @@
+# 1. add a customer -- DONE --
+# 2. add an order
+# 3. remove an order
+# 4. ship an order
+# 5. print pending orders (not shipped yet) with customer information
+# 6. more options -- DONE --
+# 7. exit -- DONE --
+
 import mysql.connector
 
 cnx = None
@@ -42,8 +50,8 @@ def insert_cust() -> None:
     result = cursor.fetchall()
     column_names = [row[0] for row in result]
     column_names = column_names[1:]
-    print("To insert a customer into database, fill in the\n"
-          "following fields (may be left blank).\n")
+    print("To insert a customer into the database, fill in\n"
+          "the following fields (may be left blank).\n")
 
     values = []
     for column_name in column_names:
