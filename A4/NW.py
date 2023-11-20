@@ -138,10 +138,7 @@ def ship_order() -> None:
 
 
 def print_pending_orders() -> None:
-    cursor.execute("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = 'northwind' AND TABLE_NAME = 'Orders';")
-    result = cursor.fetchall()
-    column_names = [row[0] for row in result]
-
+    column_names = get_col_names('Orders')
     cursor.execute("SELECT * FROM orders WHERE ShippedDate IS NULL ORDER BY OrderDate ASC;")
     pending_orders = cursor.fetchall()
 
@@ -220,7 +217,8 @@ def get_fk_constraints(table_name: str) -> list:
 
 def get_valid_fk_value(ref_table: str, ref_column: str) -> list:
     cursor.execute(f"SELECT DISTINCT {ref_column} FROM {ref_table};")
-    return [row[0] for row in cursor.fetchall()]
+    result = [str(row[0]) for row in cursor.fetchall()]
+    return result
 
 
 class OptionsMenu:
