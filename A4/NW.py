@@ -191,9 +191,17 @@ def ship_order() -> None:
 
 
 def print_pending_orders() -> None:
-    column_names = get_col_names('Orders')
-    cursor.execute("SELECT * FROM orders WHERE ShippedDate IS NULL ORDER BY OrderDate ASC;")
+    sql = """
+    SELECT o.OrderID, o.OrderDate, c.Company, c.LastName, c.FirstName
+    FROM orders o
+    JOIN northwind.customers c
+        ON c.ID = o.CustomerID
+    WHERE ShippedDate IS NULL
+    ORDER BY OrderDate;
+    """
+    cursor.execute(sql)
     pending_orders = cursor.fetchall()
+    column_names = [i[0] for i in cursor.description]
 
     print("╒══════════════╤══════════════════════╕")
     for order in pending_orders:
@@ -236,18 +244,10 @@ def db_message(msg_id: int) -> str:
 
 
 def get_col_names(table_name: str) -> list:
-    sql = f"""
-    SELECT 
-        COLUMN_NAME 
-    FROM 
-        INFORMATION_SCHEMA.COLUMNS 
-    WHERE 
-        TABLE_SCHEMA = 'northwind' 
-        AND TABLE_NAME = '{table_name}';
-    """
+    sql = f"""SELECT * FROM {table_name} LIMIT 0;"""
     cursor.execute(sql)
-    result = cursor.fetchall()
-    return [row[0] for row in result]
+    column_names = [i[0] for i in cursor.description]
+    return column_names
 
 
 def get_fk_constraints(table_name: str) -> list:
