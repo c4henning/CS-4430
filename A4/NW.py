@@ -83,8 +83,60 @@ def insert_cust() -> None:
 
 
 def add_order() -> None:
+    column_names = get_col_names('Orders')
+    column_names = column_names[1:]
+    print("To add an order into the database, fill in\n"
+          "the following fields (some may be left blank).\n")
 
-    main_menu()
+    raw_constraints = get_fk_constraints('orders')
+    constraints = {}
+    for row in raw_constraints:
+        valid_inputs = get_valid_fk_value(row[1], row[2])
+        constraints[row[0]] = valid_inputs
+
+    values = []
+    for col in column_names:
+        required = False
+        if col in constraints:
+            required = True
+
+        value = input(f"Enter value for '{col}'{' (Required)' if required else ''}: ")
+        if value == '':
+            value = None
+        while required:
+            if value not in constraints[col]:
+                print("Invalid input; try again.\nValid inputs for are:", ", ".join(constraints[col]))
+                value = input(f"Enter value for '{col}'{' (Required)' if required else ''}: ")
+
+            else:
+                values.append(value)
+                break
+
+        else:
+            values.append(value)
+
+    columns = ", ".join(column_names)
+    placeholder_values = ", ".join(["%s" for _ in column_names])
+    sql = f"INSERT INTO Orders ({columns}) VALUES ({placeholder_values});"
+
+    if input("Type (commit) to commit new order addition\n").lower().startswith('commit'):
+        try:
+            cursor.execute(sql, values)
+            cnx.commit()
+            cursor.execute("SELECT LAST_INSERT_ID();")
+            last_id = cursor.fetchone()[0]
+            print(f"Order added with ID: {last_id}")
+
+        except mysql.connector.errors.Error as e:
+            cnx.rollback()
+            print(f"Error {e}.\nOrder not added; rolling back transaction.")
+
+        finally:
+            main_menu()
+
+    else:
+        print("Order addition canceled.")
+        main_menu()
 
 
 def delete_order() -> None:
@@ -226,7 +278,7 @@ class OptionsMenu:
         self.title = "Menu"
         self.options = {
             1: ("add a customer", insert_cust),
-            2: ("add an order", db_exit),
+            2: ("add an order", add_order),
             3: ("remove an order", delete_order),
             4: ("ship an order", db_exit),
             5: ("print pending orders", print_pending_orders),
