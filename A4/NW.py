@@ -24,7 +24,7 @@ while True:
         print(e)
         if failed_connection_attempts < 3:
             print("reattempting connection...")
-        elif input("unable to connect. retry? y/n: ").lower().startswith('y'):
+        elif input("unable to connect. retry? Y/N: ").lower().startswith('y'):
             failed_connection_attempts = 0
         else:
             quit("connection failed; exiting.")
@@ -171,12 +171,9 @@ def cancel_order() -> None:
             cnx.commit()
             print(db_message(102), "Order:", order_id)
 
-        except mysql.connector.errors.Error as e:
+        except mysql.connector.errors.Error:
             cnx.rollback()
             print(db_message(102))
-
-        except Exception as e:
-            print(e)
 
         finally:
             main_menu()
@@ -212,7 +209,8 @@ def print_pending_orders() -> None:
     print(f"│ # pnd orders │ {len(pending_orders): <20} │\n"
           f"╘══════════════╧══════════════════════╛")
 
-    if True:
+    save_file = input("Would you like to save the list to a file? Y/N: ").lower().startswith('y')
+    if save_file:
         file_name = "pending_orders.txt"
         with open(file_name, "w", encoding="utf-16") as output:
             output.write("╒══════════════╤══════════════════════╕\n")
