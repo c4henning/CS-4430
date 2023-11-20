@@ -62,7 +62,7 @@ def insert_cust() -> None:
     placeholder_values = ", ".join(["%s" for _ in column_names])
     sql = f"INSERT INTO Customers ({columns}) VALUES ({placeholder_values});"
 
-    if input("Type (commit) to commit new customer addition\n").lower().startswith('commit'):
+    if input(db_message(14) + " Y/N: ").lower().startswith('y'):
         try:
             cursor.execute(sql, values)
             cnx.commit()
@@ -119,7 +119,7 @@ def add_order() -> None:
     placeholder_values = ", ".join(["%s" for _ in column_names])
     sql = f"INSERT INTO Orders ({columns}) VALUES ({placeholder_values});"
 
-    if input("Type (commit) to commit new order addition\n").lower().startswith('commit'):
+    if input(db_message(14) + " Y/N: ").lower().startswith('y'):
         try:
             cursor.execute(sql, values)
             cnx.commit()
@@ -139,7 +139,7 @@ def add_order() -> None:
         main_menu()
 
 
-def delete_order() -> None:
+def cancel_order() -> None:
     # dependant tables to be deleted
     sql1 = """
     DELETE od, i, it 
@@ -157,22 +157,23 @@ def delete_order() -> None:
     print("Enter an ID to delete an order from the database.\n"
           "(or leave blank to abort)\n")
 
-    order_id = input("ID to delete: ")
+    order_id = input("Order ID to cancel: ")
     if order_id == '':
         print("No order selected; aborting")
         main_menu()
 
-    elif input("Type (commit) to commit order deletion\n").lower().startswith('commit'):
+    print(db_message(49))
+    if input(db_message(14) + " Y/N: ").lower().startswith('y'):
         id_to_delete = (order_id,)
         try:
             cursor.execute(sql1, id_to_delete)
             cursor.execute(sql2, id_to_delete)
             cnx.commit()
-            print(f"Order {order_id} deleted.")
+            print(db_message(102), "Order:", order_id)
 
         except mysql.connector.errors.Error as e:
             cnx.rollback()
-            print(f"Error {e}.\nOrder not deleted; rolling back transaction.")
+            print(db_message(102))
 
         except Exception as e:
             print(e)
@@ -235,7 +236,7 @@ def db_message(msg_id: int) -> str:
 
 
 def get_col_names(table_name: str) -> list:
-    cust_col_query = f"""
+    sql = f"""
     SELECT 
         COLUMN_NAME 
     FROM 
@@ -244,7 +245,7 @@ def get_col_names(table_name: str) -> list:
         TABLE_SCHEMA = 'northwind' 
         AND TABLE_NAME = '{table_name}';
     """
-    cursor.execute(cust_col_query)
+    cursor.execute(sql)
     result = cursor.fetchall()
     return [row[0] for row in result]
 
@@ -279,7 +280,7 @@ class OptionsMenu:
         self.options = {
             1: ("add a customer", insert_cust),
             2: ("add an order", add_order),
-            3: ("remove an order", delete_order),
+            3: ("remove an order", cancel_order),
             4: ("ship an order", db_exit),
             5: ("print pending orders", print_pending_orders),
             6: ("more options", more_options),
