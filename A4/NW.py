@@ -46,7 +46,16 @@ def more_options():
 
 
 def insert_cust() -> None:
-    cursor.execute("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = 'northwind' AND TABLE_NAME = 'Customers';")
+    cust_col_query = """
+    SELECT 
+        COLUMN_NAME 
+    FROM 
+        INFORMATION_SCHEMA.COLUMNS 
+    WHERE 
+        TABLE_SCHEMA = 'northwind' 
+        AND TABLE_NAME = 'Customers';
+    """
+    cursor.execute(cust_col_query)
     result = cursor.fetchall()
     column_names = [row[0] for row in result]
     column_names = column_names[1:]
