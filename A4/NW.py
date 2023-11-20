@@ -1,6 +1,6 @@
 # 1. add a customer -- DONE --
-# 2. add an order
-# 3. remove an order
+# 2. add an order -- DONE --
+# 3. remove an order -- DONE --
 # 4. ship an order
 # 5. print pending orders (not shipped yet) with customer information
 # 6. more options -- DONE --
@@ -52,8 +52,8 @@ def insert_cust() -> None:
           "the following fields (may be left blank).\n")
 
     values = []
-    for column_name in column_names:
-        value = input(f"Enter value for '{column_name}': ")
+    for col in column_names:
+        value = input(f"Enter value for '{col}': ")
         if value == '':
             value = None
         values.append(value)
