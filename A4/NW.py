@@ -89,14 +89,28 @@ def add_order() -> None:
 
 def delete_order() -> None:
     # dependant tables to be deleted
-    sql1 = "DELETE od, i, it FROM orders o LEFT JOIN order_details od ON o.OrderID = od.OrderID LEFT JOIN invoices i ON o.OrderID = i.OrderID LEFT JOIN inventory_transactions it ON o.OrderID = it.CustomerOrderID WHERE o.OrderID = %s;"
-    # order may now delete; fk constraints resolved
+    sql1 = """
+    DELETE od, i, it 
+    FROM orders o 
+    LEFT JOIN order_details od 
+        ON o.OrderID = od.OrderID 
+    LEFT JOIN invoices i 
+        ON o.OrderID = i.OrderID 
+    LEFT JOIN inventory_transactions it 
+        ON o.OrderID = it.CustomerOrderID 
+    WHERE o.OrderID = %s;
+    """
+    # order to be deleted once fk constraints resolved
     sql2 = "DELETE orders FROM orders WHERE OrderID = %s;"
     print("Enter an ID to delete an order from the database.\n"
           "(or leave blank to abort)\n")
 
     order_id = input("ID to delete: ")
-    if order_id != '':
+    if order_id == '':
+        print("No order selected; aborting")
+        main_menu()
+
+    elif input("Type (commit) to commit order deletion\n").lower().startswith('commit'):
         id_to_delete = (order_id,)
         try:
             cursor.execute(sql1, id_to_delete)
@@ -114,7 +128,7 @@ def delete_order() -> None:
         finally:
             main_menu()
     else:
-        print("No order selected; aborting")
+        print("Order deletion canceled.")
         main_menu()
 
 
