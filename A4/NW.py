@@ -46,18 +46,7 @@ def more_options():
 
 
 def insert_cust() -> None:
-    cust_col_query = """
-    SELECT 
-        COLUMN_NAME 
-    FROM 
-        INFORMATION_SCHEMA.COLUMNS 
-    WHERE 
-        TABLE_SCHEMA = 'northwind' 
-        AND TABLE_NAME = 'Customers';
-    """
-    cursor.execute(cust_col_query)
-    result = cursor.fetchall()
-    column_names = [row[0] for row in result]
+    column_names = get_col_names('Customers')
     column_names = column_names[1:]
     print("To insert a customer into the database, fill in\n"
           "the following fields (may be left blank).\n")
@@ -180,6 +169,44 @@ def db_message(msg_id: int) -> str:
     cursor.execute(query, (msg_id,))
     message = cursor.fetchone()
     return message[0]
+
+
+def get_col_names(table_name: str) -> list:
+    cust_col_query = f"""
+    SELECT 
+        COLUMN_NAME 
+    FROM 
+        INFORMATION_SCHEMA.COLUMNS 
+    WHERE 
+        TABLE_SCHEMA = 'northwind' 
+        AND TABLE_NAME = '{table_name}';
+    """
+    cursor.execute(cust_col_query)
+    result = cursor.fetchall()
+    return [row[0] for row in result]
+
+
+def get_fk_constraints(table_name: str) -> list:
+    fk_query = """
+    SELECT 
+        COLUMN_NAME, 
+        REFERENCED_TABLE_NAME, 
+        REFERENCED_COLUMN_NAME 
+    FROM 
+        INFORMATION_SCHEMA.KEY_COLUMN_USAGE 
+    WHERE 
+        TABLE_SCHEMA = 'northwind' 
+        AND TABLE_NAME = %s 
+        AND REFERENCED_TABLE_NAME IS NOT NULL;
+    """
+
+    cursor.execute(fk_query, (table_name,))
+    return cursor.fetchall()
+
+
+def get_valid_fk_value(ref_table: str, ref_column: str) -> list:
+    cursor.execute(f"SELECT DISTINCT {ref_column} FROM {ref_table};")
+    return [row[0] for row in cursor.fetchall()]
 
 
 class OptionsMenu:
