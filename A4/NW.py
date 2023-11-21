@@ -185,8 +185,40 @@ def cancel_order() -> None:
 
 
 def ship_order() -> None:
+    print("Enter the ID of the order to mark as shipped.\n"
+          "(or leave blank to abort)\n")
 
-    main_menu()
+    order_id = input("Order ID to ship: ")
+    if order_id == '':
+        print("No order selected; aborting")
+        main_menu()
+        return
+
+    SHIPPED_STATUS_ID = 2
+
+    sql = """
+    UPDATE Orders 
+    SET ShippedDate = CURRENT_DATE, StatusID = %s
+    WHERE OrderID = %s;
+    """
+
+    print(f"About to mark order {order_id} as shipped.\n")
+    if input("Proceed with shipping? Y/N: ").lower().startswith('y'):
+        try:
+            cursor.execute(sql, (SHIPPED_STATUS_ID, order_id))
+            cnx.commit()
+            print(f"Order {order_id} marked as shipped.")
+
+        except mysql.connector.errors.Error as e:
+            cnx.rollback()
+            print(f"Error {e}.\nFailed to update order status; rolling back transaction.")
+
+        finally:
+            main_menu()
+
+    else:
+        print("Shipping operation canceled.")
+        main_menu()
 
 
 def print_pending_orders() -> None:
@@ -282,7 +314,7 @@ class OptionsMenu:
             1: ("add a customer", insert_cust),
             2: ("add an order", add_order),
             3: ("remove an order", cancel_order),
-            4: ("ship an order", db_exit),
+            4: ("ship an order", ship_order),
             5: ("print pending orders", print_pending_orders),
             6: ("more options", more_options),
             7: ("exit", db_exit)
