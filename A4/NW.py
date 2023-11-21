@@ -1,13 +1,7 @@
-# 1. add a customer -- DONE --
-# 2. add an order -- DONE --
-# 3. remove an order -- DONE --
-# 4. ship an order
-# 5. print pending orders (not shipped yet) with customer information
-# 6. more options -- DONE --
-# 7. exit -- DONE --
-
 import mysql.connector
 
+# Establish a connection to the MySQL database.
+# The connection attempts are retried up to 3 times if it fails initially.
 cnx = None
 failed_connection_attempts = 0
 while True:
@@ -20,6 +14,7 @@ while True:
         )
 
     except mysql.connector.errors.DatabaseError as e:
+        # Handle database connection errors
         failed_connection_attempts += 1
         print(e)
         if failed_connection_attempts < 3:
@@ -30,24 +25,39 @@ while True:
             quit("connection failed; exiting.")
 
     else:
-        print("connected to MySQL server")
+        # Successful database connection
+        print("Connected to MySQL server")
         cursor = cnx.cursor()
         break
 
 
 def main_menu():
+    """
+    Display the main options menu to the user.
+    This function creates an instance of the OptionsMenu class and displays it.
+    """
     menu = OptionsMenu()
     menu.display()
 
 
 def more_options():
+    """
+    Display a submenu with additional options to the user.
+    This function creates an instance of the MoreOptions class and displays it.
+    """
     submenu = MoreOptions()
     submenu.display()
 
 
 def insert_cust() -> None:
+    """
+    Insert a new customer into the database.
+    Prompts the user to fill in fields for the new customer.
+    Fields may be left blank. Inserts the new customer into the database
+    after user confirmation and displays the ID of the newly added customer.
+    """
     column_names = get_col_names('Customers')
-    column_names = column_names[1:]
+    column_names = column_names[1:]  # Exclude the ID column which is auto-incremented
     print("To insert a customer into the database, fill in\n"
           "the following fields (may be left blank).\n")
 
@@ -76,24 +86,31 @@ def insert_cust() -> None:
 
         finally:
             main_menu()
-
     else:
         print("Customer addition canceled.")
         main_menu()
 
 
 def add_order() -> None:
+    """
+    Add a new order into the database.
+    This function prompts the user to fill in fields for a new order.
+    Fields related to foreign keys are validated against valid values from the referenced tables.
+    The function commits the new order to the database after user confirmation.
+    """
     column_names = get_col_names('Orders')
-    column_names = column_names[1:]
+    column_names = column_names[1:]  # Exclude the ID column which is auto-incremented
     print("To add an order into the database, fill in\n"
           "the following fields (some may be left blank).\n")
 
+    # Fetch foreign key constraints and their valid values for validation
     raw_constraints = get_fk_constraints('Orders')
     constraints = {}
     for row in raw_constraints:
         valid_inputs = get_valid_fk_value(row[1], row[2])
         constraints[row[0]] = valid_inputs
 
+    # Collect user inputs, validating against FK constraints
     values = []
     for col in column_names:
         required = False
@@ -114,9 +131,7 @@ def add_order() -> None:
                 values.append(value)
                 break
 
-        else:
-            values.append(value)
-
+    # Construct and execute SQL query
     columns = ", ".join(column_names)
     placeholder_values = ", ".join(["%s" for _ in column_names])
     sql = f"INSERT INTO Orders ({columns}) VALUES ({placeholder_values});"
@@ -142,7 +157,12 @@ def add_order() -> None:
 
 
 def cancel_order() -> None:
-    # dependant tables to be deleted
+    """
+    Cancel and delete an order from the database.
+    This function deletes an order based on the provided order ID,
+    including related entries in dependent tables such as order_details,
+    invoices, and inventory_transactions.
+    """
     sql1 = """
     DELETE od, i, it 
     FROM orders o 
@@ -154,7 +174,6 @@ def cancel_order() -> None:
         ON o.OrderID = it.CustomerOrderID 
     WHERE o.OrderID = %s;
     """
-    # order to be deleted once fk constraints resolved
     sql2 = "DELETE orders FROM orders WHERE OrderID = %s;"
     print("Enter an ID to delete an order from the database.\n"
           "(or leave blank to abort)\n")
@@ -166,8 +185,8 @@ def cancel_order() -> None:
 
     print(db_message(49))
     if input(db_message(14) + " Y/N: ").lower().startswith('y'):
-        id_to_delete = (order_id,)
         try:
+            id_to_delete = (order_id,)
             cursor.execute(sql1, id_to_delete)
             cursor.execute(sql2, id_to_delete)
             cnx.commit()
@@ -185,6 +204,10 @@ def cancel_order() -> None:
 
 
 def ship_order() -> None:
+    """
+    Marks an order as shipped in the database.
+    Updates the ShippedDate and StatusID for an order based on the provided order ID.
+    """
     print("Enter the ID of the order to mark as shipped.\n"
           "(or leave blank to abort)\n")
 
@@ -211,17 +234,21 @@ def ship_order() -> None:
 
         except mysql.connector.errors.Error as e:
             cnx.rollback()
-            print(f"Error {e}.\nFailed to update order status; rolling back transaction.")
+            print(f"Error {e}.\nFailed to mark order as shipped; rolling back transaction.")
 
         finally:
             main_menu()
-
     else:
         print("Shipping operation canceled.")
         main_menu()
 
 
 def print_pending_orders() -> None:
+    """
+    Prints a list of pending orders (orders not shipped yet) along with customer information.
+    This function fetches and displays the order ID, order date, and customer details for all pending orders.
+    It also offers the option to save this list to a file.
+    """
     sql = """
     SELECT o.OrderID, o.OrderDate, c.Company, c.LastName, c.FirstName
     FROM orders o
@@ -234,6 +261,7 @@ def print_pending_orders() -> None:
     pending_orders = cursor.fetchall()
     column_names = [i[0] for i in cursor.description]
 
+    # Displaying the pending orders
     print("╒══════════════╤══════════════════════╕")
     for order in pending_orders:
         order_details = [f"│ {col_name: <12} │ {str(value): <20} │"
@@ -243,6 +271,7 @@ def print_pending_orders() -> None:
     print(f"│ # pnd orders │ {len(pending_orders): <20} │\n"
           f"╘══════════════╧══════════════════════╛")
 
+    # Option to save the data to a file
     save_file = input("Would you like to save the list to a file? Y/N: ").lower().startswith('y')
     if save_file:
         file_name = "pending_orders.txt"
@@ -262,21 +291,35 @@ def print_pending_orders() -> None:
 
 
 def db_exit() -> None:
-    print("Closing DB connection and exiting. Goodbye!")
+    """
+    Closes the database connection and exits the program.
+    This function should be called to cleanly exit the application.
+    """
+    print("Closing database connection and exiting. Goodbye!")
     cursor.close()
     cnx.close()
     quit()
 
 
 def db_message(msg_id: int) -> str:
+    """
+    Retrieves a specific message from the 'Message' table in the database.
+    :param msg_id: The ID of the message to retrieve.
+    :returns: The message text.
+    """
     sql = "SELECT Message FROM messages WHERE ID = '%s'"
     cursor.execute(sql, (msg_id,))
     message = cursor.fetchone()
-    return message[0]
+    return message[0] if message else "***Message not found***"
 
 
 def get_col_names(table_name: str) -> list:
-    sql = f"""SELECT * FROM {table_name} LIMIT 0;"""
+    """
+    Retrieves the column names for a specified table.
+    :param table_name: The name of the table to get column names from.
+    :returns: A list of column names for the table.
+    """
+    sql = f"SELECT * FROM {table_name} LIMIT 0;"
     cursor.execute(sql)
     column_names = [i[0] for i in cursor.description]
     cursor.fetchall()   # clears cursor
@@ -284,6 +327,11 @@ def get_col_names(table_name: str) -> list:
 
 
 def get_fk_constraints(table_name: str) -> list:
+    """
+    Retrieves foreign key constraints for a specified table.
+    :param table_name: The name of the table to get foreign key constraints from.
+    :returns: A list of tuples with column name, referenced table name, and referenced column name.
+    """
     fk_query = """
     SELECT 
         COLUMN_NAME, 
@@ -296,31 +344,45 @@ def get_fk_constraints(table_name: str) -> list:
         AND TABLE_NAME = %s 
         AND REFERENCED_TABLE_NAME IS NOT NULL;
     """
-
     cursor.execute(fk_query, (table_name,))
     return cursor.fetchall()
 
 
 def get_valid_fk_value(ref_table: str, ref_column: str) -> list:
+    """
+    Retrieves distinct values from a referenced table and column, useful for foreign key validation.
+    :param ref_table: The name of the referenced table.
+    :param ref_column: The name of the referenced column.
+    :returns: A list of valid values for the foreign key.
+    """
     cursor.execute(f"SELECT DISTINCT {ref_column} FROM {ref_table};")
     result = [str(row[0]) for row in cursor.fetchall()]
     return result
 
 
 class OptionsMenu:
+    """
+    Class representing the main options menu.
+    Each option in the menu is mapped to a corresponding function that implements the option's functionality.
+    """
+
     def __init__(self):
-        self.title = "Menu"
+        self.title = "Main Menu"
         self.options = {
-            1: ("add a customer", insert_cust),
-            2: ("add an order", add_order),
-            3: ("remove an order", cancel_order),
-            4: ("ship an order", ship_order),
-            5: ("print pending orders", print_pending_orders),
-            6: ("more options", more_options),
-            7: ("exit", db_exit)
+            1: ("Add a customer", insert_cust),
+            2: ("Add an order", add_order),
+            3: ("Remove an order", cancel_order),
+            4: ("Ship an order", ship_order),
+            5: ("Print pending orders", print_pending_orders),
+            6: ("More options", more_options),
+            7: ("Exit", db_exit)
         }
 
     def display(self):
+        """
+        Displays the menu options and prompts the user to make a selection.
+        The selected option's corresponding function is then executed.
+        """
         print(f"┌────────────────────────────────────────────────┐\n"
               f"│ {self.title: <47}│\n"
               f"├────────────────────────────────────────────────┤")
@@ -340,20 +402,21 @@ class OptionsMenu:
 
 
 class MoreOptions(OptionsMenu):
+    """
+    Class representing a submenu with additional options.
+    Inherits from OptionsMenu and extends it with additional choices.
+    """
+
     def __init__(self):
         super().__init__()
         self.title = "More Options"
         self.options = {
-            1: ("add things", db_exit),
-            2: ("to this", db_exit),
-            3: ("later", db_exit),
+            1: ("add things", print),
+            2: ("to this", print),
+            3: ("later", print),
             4: ("previous menu", main_menu)
         }
 
 
-main_menu()
-
-
-print("DEBUG:\nthere was an error. we shouldn't be here.")
-cursor.close()
-cnx.close()
+if __name__ == "__main__":
+    main_menu()
