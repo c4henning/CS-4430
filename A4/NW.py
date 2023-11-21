@@ -88,7 +88,7 @@ def add_order() -> None:
     print("To add an order into the database, fill in\n"
           "the following fields (some may be left blank).\n")
 
-    raw_constraints = get_fk_constraints('orders')
+    raw_constraints = get_fk_constraints('Orders')
     constraints = {}
     for row in raw_constraints:
         valid_inputs = get_valid_fk_value(row[1], row[2])
@@ -100,13 +100,15 @@ def add_order() -> None:
         if col in constraints:
             required = True
 
-        value = input(f"Enter value for '{col}'{' (Required)' if required else ''}: ")
+        value = input(f"Enter value for '{col}'{' (Required)' if required else ''}"
+                      f"{'. Use YYYY/MM/DD HH:MM:SS format' if 'Date' in col else ''}: ")
         if value == '':
             value = None
         while required:
             if value not in constraints[col]:
                 print("Invalid input; try again.\nValid inputs for are:", ", ".join(constraints[col]))
-                value = input(f"Enter value for '{col}'{' (Required)' if required else ''}: ")
+                value = input(f"Enter value for '{col}'{' (Required)' if required else ''}"
+                              f"{'. Use YYYY/MM/DD HH:MM:SS format' if 'Date' in col else ''}: ")
 
             else:
                 values.append(value)
@@ -235,8 +237,8 @@ def db_exit() -> None:
 
 
 def db_message(msg_id: int) -> str:
-    query = "SELECT Message FROM messages WHERE ID = '%s'"
-    cursor.execute(query, (msg_id,))
+    sql = "SELECT Message FROM messages WHERE ID = '%s'"
+    cursor.execute(sql, (msg_id,))
     message = cursor.fetchone()
     return message[0]
 
@@ -245,6 +247,7 @@ def get_col_names(table_name: str) -> list:
     sql = f"""SELECT * FROM {table_name} LIMIT 0;"""
     cursor.execute(sql)
     column_names = [i[0] for i in cursor.description]
+    cursor.fetchall()   # clears cursor
     return column_names
 
 
