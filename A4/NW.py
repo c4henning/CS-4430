@@ -1,3 +1,5 @@
+# CS 4430 Assignment 4 by Christian Henning
+
 import mysql.connector
 
 # Establish a connection to the MySQL database.
